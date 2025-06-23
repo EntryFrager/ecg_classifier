@@ -6,4 +6,4 @@ pip install torch
 pip install torchvision
 pip install pandas
 
-bash ./Scripts/get_datasets.sh
+bash Scripts/get_datasets.sh

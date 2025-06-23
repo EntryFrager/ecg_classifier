@@ -21,6 +21,7 @@ class Bottleneck(nn.Module):
 
         self.relu = nn.ReLU()
         self.downsample = downsample
+        self.stride = stride
 
     
     def forward(self, x):
@@ -40,9 +41,11 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, layers, num_classess):
+    def __init__(self, block, layers, num_classess):
         super().__init__()
 
+        self.inplanes = 64
+        self.dilation = 1
         bottle_neck = Bottleneck()
         
         self.conv_1 = nn.Conv1d(12, 64, kernel_size=7, stride=2, padding=3, bias=False),
