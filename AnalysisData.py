@@ -3,9 +3,8 @@ import pandas as pd
 import ast
 import wfdb
 import torch
-import torchvision
 from torch.utils.data import Dataset
-
+import matplotlib.pyplot as plt
 
 class ECGDataset:
     def __init__(self, path = 'data/physionet.org/files/ptb-xl/1.0.1/', sampling_rate = 100):
@@ -19,7 +18,7 @@ class ECGDataset:
         self.test_fold = 10
  
         self.target_codes   = None
-        self.metadata_features = ['age', 'sex', 'height', 'weight', 'heart_axis', 'infarction_stadium1', 'infarction_stadium2', 'strat_fold']
+        self.metadata_features = ['age', 'sex', 'height', 'weight', 'heart_axis', 'infarction_stadium1', 'infarction_stadium2']
 
         self.ecg_signals    = None
         self.pqrst_features = None
@@ -27,12 +26,14 @@ class ECGDataset:
         self.labels         = None
 
 
-    def proccess_data(self, target_codes, check_pqrst=False):
+    def proccess_data(self, target_codes, use_metadata=False, use_pqrst=False):
         self._set_target_codes(target_codes)
         self._load_data()
-        self.metadata = self._proccess_metadata()
+
+        if use_metadata:
+            self.metadata = self._proccess_metadata()
         
-        if (check_pqrst):
+        if use_pqrst:
             self.pqrst_features = self._proccess_pqrst_features()
 
 
@@ -59,37 +60,16 @@ class ECGDataset:
         self.ecg_signals = [wfdb.rdsamp(self.path + file)[0] for file in files]
         self.ecg_signals = np.array(self.ecg_signals)
 
-    
+
     def _proccess_metadata(self):
         metadata = self.ptbxl_dataset[self.metadata_features].copy()
 
-        unique_value_infrstd = {np.nan: 0,
-                                'unknown': -1,
-                                'Stadium I': 1,
-                                'Stadium I-II': 1.5,
-                                'Stadium II': 2,
-                                'Stadium II-III': 2.5,
-                                'Stadium III': 3,}
-        fields_name = ['infarction_stadium1', 'infarction_stadium2']
-
-        for field_name in fields_name:
-            metadata[field_name] = metadata[field_name].map(unique_value_infrstd)
+        metadata = pd.get_dummies(metadata, columns=['infarction_stadium1', 'infarction_stadium2', 'heart_axis'])
 
         with pd.option_context("future.no_silent_downcasting", True):
-            metadata['age'] = metadata['age'].fillna(metadata['age'].mean())
+            metadata['age'] = metadata['age'].fillna(metadata['age'].median())
             metadata['height'] = metadata['height'].fillna(metadata['height'].median())
             metadata['weight'] = metadata['weight'].fillna(metadata['weight'].median())
-
-        unique_value_hrtax = {np.nan: -10000,
-                              'AXL': -3,
-                              'ALAD': -2,
-                              'LAD': -1,
-                              'MID': 0,
-                              'RAD': 1,
-                              'ARAD': 2,
-                              'AXR': 3,
-                              'SAG': 10000,}
-        metadata['heart_axis'] = metadata['heart_axis'].map(unique_value_hrtax)
 
         return metadata
     
@@ -105,16 +85,18 @@ class ECGDataset:
         test_mask  = (self.ptbxl_dataset.strat_fold == self.test_fold)
 
         train = {'ecg_signals': self.ecg_signals[train_mask],
-                 'metadata': self.metadata.values[train_mask],
                  'labels': self.labels.values[train_mask]}
         
         val = {'ecg_signals': self.ecg_signals[val_mask],
-               'metadata': self.metadata.values[val_mask],
                'labels': self.labels.values[val_mask]}
         
         test = {'ecg_signals': self.ecg_signals[test_mask],
-               'metadata': self.metadata.values[test_mask],
                'labels': self.labels.values[test_mask]}
+        
+        if self.metadata is not None:
+            train['metadata'] = self.metadata.values[train_mask]
+            val['metadata']   = self.metadata.values[val_mask]
+            test['metadata']  = self.metadata.values[test_mask]
         
         if self.pqrst_features is not None:
             train['pqrst_features'] = self.pqrst_features[train_mask]
@@ -123,63 +105,87 @@ class ECGDataset:
 
         
         return train, val, test
-    
+
 
 class ECGTorchDataset(Dataset):
     def __init__(self, dataset, transform=None):
-        self.ecg_signals     = torch.FloatTensor(dataset['ecg_signals'])
-        self.metadata       = torch.FloatTensor(dataset['metadata'])
-        self.pqrst_features = torch.FloatTensor(dataset['pqrst_features']) if 'pqrst_features' in dataset else None
-        self.labels         = torch.FloatTensor(dataset['labels'])
+        self.ecg_signals    = dataset['ecg_signals']
+        self.metadata       = dataset['metadata'] if 'metadata' in dataset else None
+        self.pqrst_features = dataset['pqrst_features'] if 'pqrst_features' in dataset else None
+        self.labels         = dataset['labels']
         self.transform = transform
-
-    
-    def __len__(self):
-        return len(self.labels)
 
 
     def __getitem__(self, index):
-        dataset =  {'ecg_signals': self.ecg_signals[index],
-                    'metadata': self.metadata[index],
-                    'labels': self.labels[index]}
+        sample = {'ecg_signals': self.ecg_signals[index],
+                  'labels': self.labels[index]}
         
+        if self.metadata is not None:
+            sample['metadata'] = self.metadata[index]
+
         if self.pqrst_features is not None:
-            dataset['pqrst_features'] = self.pqrst_features[index]
+            sample['pqrst_features'] = self.pqrst_features[index]
 
         if self.transform is not None:
-            dataset = self.transform(dataset)
+            sample = self.transform(sample)
 
-        return dataset
+        return sample
+    
+    
+    def __len__(self):
+        return len(self.labels)
     
 
-class Normalize:
+class Compose:
+    def __init__(self, transforms):
+        self.transforms = transforms
+
+
+    def __call__(self, obj):
+        for t in self.transforms:
+            obj = t(obj)
+
+        return obj
+
+
+class ToTensor:
     def __init__(self):
-        self.ecg_signals_stats     = None
-        self.metadata_stats       = None
-        self.pqrst_features_stats = None
+        pass
+    
+    
+    def __call__(self, sample):
+        for key in sample:
+            sample[key] = torch.FloatTensor(sample[key])
+        
+        return sample
 
 
-    def get_stats(self, dataset):
-        self.ecg_signals_stats = {'mean': np.mean(dataset['ecg_signals']),
-                                 'std': np.std(dataset['ecg_signals'])}
-        
-        self.metadata_stats = {'mean': np.mean(dataset['metadata']),
-                               'std': np.std(dataset['metadata'])}
-        
-        if 'pqrst_features' in dataset:
-            self.pqrst_features_stats = {'mean': np.mean(dataset['pqrst_features']),
-                                         'std': np.std(dataset['pqrst_features'])}
-            
+class Normalize(torch.nn.Module):
+    def __init__(self, mean_ecg, std_ecg, mean_meta=None, std_meta=None, mean_pqrst=None, std_pqrst=None):
+        self.mean_ecg = mean_ecg
+        self.std_ecg  = std_ecg
 
-    def norm(self, dataset):
-        dataset['ecg_signals'] = (dataset['ecg_singals'] - self.ecg_signals_stats['mean']) / self.ecg_signals_stats['std']
-        
-        dataset['metadata'] = (dataset['metadata'] - self.metadata_stats['mean']) / self.metadata_stats['std']
-        
-        if self.pqrst_features_stats is not None:
-            dataset['pqrst_features'] = (dataset['pqrst_features'] - self.pqrst_features_stats['mean']) / self.pqrst_features_stats['std']
+        self.mean_meta = mean_meta
+        self.std_meta  = std_meta
 
-        return dataset
+        self.mean_pqrst = mean_pqrst
+        self.std_pqrst  = std_pqrst
+
+
+    def forward(self, sample):
+        sample['ecg_signals'] = (sample['ecg_signals'] - mean_ecg) / std_ecg
+
+        if mean_meta is not None:
+            sample['meta'] = (sample['meta'] - mean_meta) / std_meta
+
+        if mean_pqrst is not None:
+            sample['pqrst_features'] = (sample['pqrst_features'] - mean_pqrst) / std_pqrst
+
+        return sample
+    
+
+def get_mean_std(value, axis=None):
+    return value.mean(axis=axis), value.std(axis=axis)
 
 
 sampling_rate = 100
@@ -195,14 +201,21 @@ ecg_dataset = ECGDataset(path, sampling_rate)
 ecg_dataset.proccess_data(target_codes)
 train, val, test = ecg_dataset.get_dataset()
 
-transform = Normalize()
-transform.get_stats(train)
+mean_ecg, std_ecg = get_mean_std(train['ecg_signals'], axis=(0, 1))
+mean_meta, std_meta, mean_pqrst, std_pqrst = None, None, None, None
+
+if 'metadata' in train:
+    mean_meta, std_meta = get_mean_std(train['metadata'])
+
+if 'pqrst_features' in train:
+    mean_pqrst, std_pqrst = get_mean_std(train['pqrst_features'])
+
+transform = Compose([ToTensor(), Normalize(mean_ecg, std_ecg, mean_meta, std_meta, mean_pqrst, std_pqrst)])
 
 train = ECGTorchDataset(train, transform=transform)
-val = ECGTorchDataset(val)
-test = ECGTorchDataset(test)
+val   = ECGTorchDataset(val)
+test  = ECGTorchDataset(test)
 
 train_loader = torch.utils.data.DataLoader(train, batch_size=32, shuffle=True)
-val_loader   = torch.utils.data.DataLoader(val, batch_size=32, shuffle=True)
-test_loader  = torch.utils.data.DataLoader(test, batch_size=32, shuffle=True)
-
+val_loader   = torch.utils.data.DataLoader(val,   batch_size=32, shuffle=True)
+test_loader  = torch.utils.data.DataLoader(test,  batch_size=32, shuffle=True)
