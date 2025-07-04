@@ -1,4 +1,3 @@
-import os
 import numpy as np
 import pandas as pd
 import wfdb
@@ -9,8 +8,8 @@ from torch.utils.data import Dataset, Subset
 
 class ECGDataset(Dataset):
     ecg_stat = {
-        'mean': torch.FloatTensor([-0.0018, -0.0013,  0.0005,  0.0016, -0.0011, -0.0004,  0.0002, -0.0009, -0.0015, -0.0017, -0.0008, -0.0021]),
-        'std': torch.FloatTensor([[0.1640, 0.1647, 0.1713, 0.1403, 0.1461, 0.1466, 0.2337, 0.3377, 0.3336, 0.3058, 0.2731, 0.2755]])
+        'mean': torch.tensor([-0.0018, -0.0013,  0.0005,  0.0016, -0.0011, -0.0004,  0.0002, -0.0009, -0.0015, -0.0017, -0.0008, -0.0021], dtype=torch.float32),
+        'std': torch.tensor([[0.1640, 0.1647, 0.1713, 0.1403, 0.1461, 0.1466, 0.2337, 0.3377, 0.3336, 0.3058, 0.2731, 0.2755]], dtype=torch.float32)
     }
     
     metadata_stat = {
@@ -31,7 +30,8 @@ class ECGDataset(Dataset):
                  target_labels=None, 
                  sampling_rate=100,
                  use_pqrst=False,
-                 use_metadata=None):
+                 use_metadata=None,
+                 treshold=50):
         self.path = path
         self.sampling_rate = sampling_rate
 
@@ -44,7 +44,11 @@ class ECGDataset(Dataset):
         self.ecg_signals    = self._process_ecg_signals()
         self.pqrst_features = self._process_pqrst_features() if use_pqrst else None
         self.metadata       = self._process_metadata() if use_metadata else None
-        self.transform      = Compose([ToTensor(), Normalize(self.ecg_stat, self.metadata_stat, self.pqrst_stat)])
+
+        norm = Normalize(self.ecg_stat['mean'], self.ecg_stat['std'], 
+                         self.metadata_stat['mean'] if use_metadata else None, self.metadata_stat['std'] if use_metadata else None,
+                         self.pqrst_stat['mean'] if use_pqrst else None, self.pqrst_stat['std'] if use_pqrst else None)
+        self.transform = Compose([ToTensor(), norm])
 
 
     def get_dataset(self):
@@ -129,7 +133,7 @@ class ECGDataset(Dataset):
             unique_value = train_label[key].value_counts()
             pos_weight.append(unique_value['0'] / unique_value['1'])
 
-        return pos_weight
+        return torch.tensor(pos_weight, dtype=torch.float32)
 
 
     def close_dataset(self):
@@ -162,17 +166,17 @@ class ToTensor:
 
 
 class Normalize(torch.nn.Module):
-    def __init__(self, ecg_stat, metadata_stat, pqrst_stat):
+    def __init__(self, mean_ecg, std_ecg, mean_meta, std_meta, mean_pqrst, std_pqrst):
         super().__init__()
 
-        self.mean_ecg = ecg_stat['mean']
-        self.std_ecg  = ecg_stat['std']
+        self.mean_ecg = mean_ecg
+        self.std_ecg  = std_ecg
+        
+        self.mean_meta = mean_meta
+        self.std_meta  = std_meta
 
-        self.mean_meta = metadata_stat['mean']
-        self.std_meta  = metadata_stat['std']
-
-        self.mean_pqrst = pqrst_stat['mean']
-        self.std_pqrst  = pqrst_stat['std']
+        self.mean_pqrst = mean_pqrst
+        self.std_pqrst  = std_pqrst
 
 
     def forward(self, sample):

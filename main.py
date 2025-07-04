@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from AnalysisData import ECGDataset, get_mean_std, Compose, ToTensor, Normalize
+from AnalysisData import ECGDataset
 from Model import ResNet, Bottleneck, train, test, device
 
 
@@ -22,9 +22,7 @@ target_labels = {
     'afib': ['AFIB', 'AFLT']
 }
 
-valid_fold = 9
-test_fold = 10
-use_metadata = True
+use_metadata = False
 use_pqrst = False
 
 ecg_dataset = ECGDataset(path, 
@@ -42,7 +40,7 @@ ecg_dataset.close_dataset()
 
 batch_size    = 32
 learning_rate = 0.0001
-n_epoch       = 15
+n_epoch       = 10
 num_classes   = len(target_labels)
 
 treshold_preds = 0.5
@@ -56,8 +54,8 @@ test_loader  = torch.utils.data.DataLoader(test_dataset,  batch_size=batch_size)
 net = ResNet(Bottleneck, [2, 2, 2, 2], num_classes=num_classes).to(device)
 optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, weight_decay=1e-4)
 
-net, train_history, val_history = train(net, train_loader, val_loader, 
-                                        n_epoch, optimizer, criterion, treshold_preds)
+net, loss_train_history, loss_val_history = train(net, train_loader, val_loader, 
+                                                  n_epoch, optimizer, criterion, treshold_preds)
 test_metrics = test(net, test_loader, criterion, treshold_preds)
 
 print(f"Test metrics: {test_metrics}")

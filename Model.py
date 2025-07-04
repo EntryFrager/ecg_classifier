@@ -6,7 +6,6 @@ import warnings
 import random
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
 
-
 warnings.filterwarnings("ignore")
 DEFAULT_RANDOM_SEED = 42
 
@@ -19,7 +18,7 @@ def SeedBasic(seed = DEFAULT_RANDOM_SEED):
 
 def SeedTorch(seed = DEFAULT_RANDOM_SEED):
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark     = False
@@ -234,20 +233,18 @@ def test(net, test_loader, criterion, treshold_preds):
     return test_loss
 
 
-def metric_func(bin_labels, bin_preds, preds):
-    f1_acc      = []
-    roc_auc     = []
-    
+def metric_func(bin_labels, bin_preds, preds):    
     TP, FP, TN, FN = [], [], [], []
     sensitivity, specificity, precision = [], [], []
-    my_f1 = []
+    my_f1   = []
+    roc_auc = []
 
     for i in range(0, bin_labels.shape[1]):
         conf_matrix = confusion_matrix(bin_labels[:, i], bin_preds[:, i], labels=[0, 1])
         TP_i, FP_i, TN_i, FN_i = conf_matrix[1][1], conf_matrix[0][1], conf_matrix[0][0], conf_matrix[1][0]
 
         print('\t\tTP\tFP\tTN\tFN')
-        print(f'\t\t{TP_i}  {FP_i}  {TN_i}  {FN_i}')
+        print(f'\t\t{TP_i}\t{FP_i}\t{TN_i}\t{FN_i}')
         
         sensitivity_i = TP_i / (TP_i + FN_i)
         specificity_i = TN_i / (TN_i + FP_i)
