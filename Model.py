@@ -1,11 +1,11 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import pandas as pd
 import os
-import warnings 
+import warnings
 import random
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
-
 
 warnings.filterwarnings("ignore")
 DEFAULT_RANDOM_SEED = 42
@@ -19,7 +19,7 @@ def SeedBasic(seed = DEFAULT_RANDOM_SEED):
 
 def SeedTorch(seed = DEFAULT_RANDOM_SEED):
     torch.manual_seed(seed)
-    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark     = False
@@ -36,20 +36,54 @@ print(f"Training will take on {device}")
 SeedEverything()
 
 
+class BasicBlock(nn.Module):
+    expansion = 1
+
+    def __init__(self, inplanes, planes, stride=1, downsample=None):
+        super().__init__()
+
+        self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
+        self.batch_norm_1 = nn.BatchNorm1d(planes)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv_2 = nn.Conv1d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
+        self.batch_norm_2 = nn.BatchNorm1d(planes)
+        self.downsample = downsample
+        self.stride = stride
+
+    
+    def forward(self, x):
+        residual = x
+
+        out = self.conv_1(x)
+        out = self.batch_norm_1(out)
+        out = self.relu(out)
+
+        out = self.conv_2(out)
+        out = self.batch_norm_2(out)
+
+        if self.downsample is not None:
+            residual = self.downsample(x)
+
+        out += residual
+        out = self.relu(out)
+
+        return out
+
+
 class Bottleneck(nn.Module):
     expansion = 4
     
     def __init__(self, inplanes, planes, stride=1, downsample = None):
         super().__init__()
 
-        self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=1, padding=0)
+        self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=1, padding=0, bias=False)
         self.batch_norm_1 = nn.BatchNorm1d(planes)
-        self.conv_2 = nn.Conv1d(planes, planes, kernel_size=3, stride=stride, padding=1)
+        self.conv_2 = nn.Conv1d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.batch_norm_2 = nn.BatchNorm1d(planes)
-        self.conv_3 = nn.Conv1d(planes, planes * self.expansion, kernel_size=1, stride=1, padding=0)
+        self.conv_3 = nn.Conv1d(planes, planes * self.expansion, kernel_size=1, stride=1, padding=0, bias=False)
         self.batch_norm_3 = nn.BatchNorm1d(planes * self.expansion)
 
-        self.relu = nn.ReLU()
+        self.relu = nn.ReLU(inplace=True)
         self.downsample = downsample
         self.stride = stride
 
@@ -84,9 +118,9 @@ class ResNet(nn.Module):
 
         self.inplanes = 64
 
-        self.conv_1 = nn.Conv1d(12, 64, kernel_size=15, stride=2, padding=7, bias=False)
-        self.batch_norm_1 = nn.BatchNorm1d(64)
-        self.relu = nn.ReLU()
+        self.conv_1 = nn.Conv1d(12, self.inplanes, kernel_size=15, stride=2, padding=7, bias=False)
+        self.batch_norm_1 = nn.BatchNorm1d(self.inplanes)
+        self.relu = nn.ReLU(inplace=True)
         self.maxpool_1 = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
         
         self.layer_1 = self._make_layer(block, 64, layers[0])
@@ -195,10 +229,10 @@ def train(net, train_loader, val_loader,
         val_loss /= len(val_loader)
         loss_val_history.append(val_loss)
 
-        print('Validation metrics:')
+        print('\nValidation metrics:\n')
         metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
 
-        print(f'train Loss: {train_loss:.4f}\n'
+        print(f'\ntrain Loss: {train_loss:.4f}\n'
               f'val Loss: {val_loss:.4f}')
     
     return net, loss_train_history, loss_val_history
@@ -226,28 +260,25 @@ def test(net, test_loader, criterion, treshold_preds):
 
     test_loss /= len(test_loader)
 
-    print('Test metrics:')
+    print('\nTest metrics:')
     metric_func(np.concatenate(test_labels), np.concatenate(test_preds), np.concatenate(test_prob))
 
-    print(f'test Loss: {test_loss:.4f}')
+    print(f'\ntest Loss: {test_loss:.4f}')
 
     return test_loss
 
 
-def metric_func(bin_labels, bin_preds, preds):
-    f1_acc      = []
-    roc_auc     = []
-    
+def metric_func(bin_labels, bin_preds, preds):    
     TP, FP, TN, FN = [], [], [], []
     sensitivity, specificity, precision = [], [], []
-    my_f1 = []
+    f1      = []
+    roc_auc = []
 
     for i in range(0, bin_labels.shape[1]):
         conf_matrix = confusion_matrix(bin_labels[:, i], bin_preds[:, i], labels=[0, 1])
         TP_i, FP_i, TN_i, FN_i = conf_matrix[1][1], conf_matrix[0][1], conf_matrix[0][0], conf_matrix[1][0]
 
-        print('\t\tTP\tFP\tTN\tFN')
-        print(f'\t\t{TP_i}  {FP_i}  {TN_i}  {FN_i}')
+        print(pd.DataFrame([{'TP': TP_i, 'FP': FP_i, 'TN': TN_i, 'FN': FN_i}]).to_string(index=False))
         
         sensitivity_i = TP_i / (TP_i + FN_i)
         specificity_i = TN_i / (TN_i + FP_i)
@@ -262,7 +293,7 @@ def metric_func(bin_labels, bin_preds, preds):
         specificity.append(specificity_i)
         precision.append(precision_i)
 
-        my_f1.append(2 * sensitivity_i * precision_i / (sensitivity_i + precision_i))
+        f1.append(2 * sensitivity_i * precision_i / (sensitivity_i + precision_i))
         roc_auc.append(roc_auc_score(bin_labels[:, i], preds[:, i]))
 
     # micro averaging
@@ -274,11 +305,13 @@ def metric_func(bin_labels, bin_preds, preds):
 
     micro_f1 = 2 * micro_sensitivity * micro_precision / (micro_sensitivity + micro_precision)
 
-    print(f'Micro averaging:'                           \
-          f'\n\tsensitivity: {micro_sensitivity:.4f}'   \
-          f'\n\tspecificity: {micro_specificity:.4f}'   \
-          f'\n\tprecision:   {micro_precision:.4f}'     \
-          f'\n\tf1 score:    {micro_f1:.4f}')
+    print('\nMicro averaging:')
+    print(pd.DataFrame.from_dict({
+        'sensitivity': micro_sensitivity,
+        'specificity': micro_specificity,
+        'precision':   micro_precision,
+        'f1 score':    micro_f1
+    }, orient='index').to_string(header=False))
 
     # macro averaging
 
@@ -288,20 +321,22 @@ def metric_func(bin_labels, bin_preds, preds):
 
     macro_f1 = 2 * macro_sensitivity * macro_precision / (macro_sensitivity + macro_precision)
 
-    print(f'Macro averaging:'                           \
-          f'\n\tsensitivity: {macro_sensitivity:.4f}'   \
-          f'\n\tspecificity: {macro_specificity:.4f}'   \
-          f'\n\tprecision:   {macro_precision:.4f}'     \
-          f'\n\tf1 score:    {macro_f1:.4f}')
+    print('\nMacro averaging:')
+    print(pd.DataFrame.from_dict({
+        'sensitivity': macro_sensitivity,
+        'specificity': macro_specificity,
+        'precision':   macro_precision,
+        'f1 score':    macro_f1
+    }, orient='index').to_string(header=False))
 
     # weighted averaging
     
-    print(f'Weighted averaging with w_k=1:'             \
-          f'\n\tf1_score:   {np.mean(my_f1)}')
+    print(f'\nWeighted averaging:' \
+          f'f1_score: {np.mean(f1)}')
 
     # roc auc and classification report
 
-    print(f'ROC AUC: {np.mean(roc_auc)}')
+    print(f'\nROC AUC: {np.mean(roc_auc)}')
 
-    print(f'Classification report:\n{classification_report(bin_labels, bin_preds)}')
+    print(f'\nClassification report:\n{classification_report(bin_labels, bin_preds)}')
 
