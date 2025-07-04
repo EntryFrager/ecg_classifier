@@ -1,14 +1,14 @@
 import torch
 import torch.nn as nn
 
-from AnalysisData import ECGDataset, get_mean_std, Compose, ToTensor, Normalize
-from Model import ResNet, Bottleneck, train, test, device
+from AnalysisData import ECGDataset
+from Model import ResNet, Bottleneck, BasicBlock, train, test, device
 
 
-def get_stat(dataset, target_labels):
-    for key, _ in target_labels.items():
-        label = dataset[key].value_counts()
-        print(f'{key} unique labels: {label}')
+# def get_stat(dataset, target_labels):
+#     for key, _ in target_labels.items():
+#         label = dataset[key].value_counts()
+#         print(f'{key} unique labels: {label}')
 
 
 path = "data/physionet.org/files/ptb-xl/1.0.1/"
@@ -22,9 +22,7 @@ target_labels = {
     'afib': ['AFIB', 'AFLT']
 }
 
-valid_fold = 9
-test_fold = 10
-use_metadata = True
+use_metadata = False
 use_pqrst = False
 
 ecg_dataset = ECGDataset(path, 
@@ -34,10 +32,10 @@ ecg_dataset = ECGDataset(path,
                          use_metadata=use_metadata)
 
 ptbxl_dataset = ecg_dataset.ptbxl_dataset
-get_stat(ptbxl_dataset, target_labels)
+# get_stat(ptbxl_dataset, target_labels)
 
 train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
-pos_weight = ecg_dataset.get_pos_weight()
+pos_weight = ecg_dataset.get_pos_weight().to(device)
 ecg_dataset.close_dataset()
 
 batch_size    = 32
@@ -53,7 +51,7 @@ train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
 val_loader   = torch.utils.data.DataLoader(val_dataset,   batch_size=batch_size)
 test_loader  = torch.utils.data.DataLoader(test_dataset,  batch_size=batch_size)
 
-net = ResNet(Bottleneck, [2, 2, 2, 2], num_classes=num_classes).to(device)
+net = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=num_classes).to(device)
 optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, weight_decay=1e-4)
 
 net, train_history, val_history = train(net, train_loader, val_loader, 
