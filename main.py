@@ -1,19 +1,14 @@
-import pandas as pd
 import torch
 import torch.nn as nn
 
 from AnalysisData import ECGDataset, get_mean_std, Compose, ToTensor, Normalize
 from Model import ResNet, Bottleneck, train, test, device
 
-def process_metadata(dataset):
-    metadata = dataset[['age', 'sex', 'height', 'weight']].copy()
 
-    with pd.option_context("future.no_silent_downcasting", True):
-        metadata['age']    = metadata['age'].fillna(metadata['age'].median())
-        metadata['height'] = metadata['height'].fillna(metadata['height'].median())
-        metadata['weight'] = metadata['weight'].fillna(metadata['weight'].median())
-
-    return metadata.values
+def get_stat(dataset, target_labels):
+    for key, _ in target_labels.items():
+        label = dataset[key].value_counts()
+        print(f'{key} unique labels: {label}')
 
 
 path = "data/physionet.org/files/ptb-xl/1.0.1/"
@@ -21,7 +16,7 @@ sampling_rate = 100
 
 target_labels = {
     'sinus': ['NORM', 'SR'],
-    'arr': ['SARRH', 'SVARR'],
+    'arrit': ['SARRH', 'SVARR'],
     'tach': ['STACH', 'SVATC', 'PSVT'],
     'brad': ['SBRAD'],
     'afib': ['AFIB', 'AFLT']
@@ -29,37 +24,30 @@ target_labels = {
 
 valid_fold = 9
 test_fold = 10
-use_metadata = False
+use_metadata = True
 use_pqrst = False
 
 ecg_dataset = ECGDataset(path, 
                          target_labels, 
-                         sampling_rate,  
+                         sampling_rate, 
                          use_pqrst=use_pqrst, 
-                         process_metadata=None,
-                         transform=None)
+                         use_metadata=use_metadata)
 
-mean_ecg, std_ecg = get_mean_std(ecg_dataset.get_ecg_signals(), axis=(0, 1))
-mean_meta, std_meta, mean_pqrst, std_pqrst = None, None, None, None
+ptbxl_dataset = ecg_dataset.ptbxl_dataset
+get_stat(ptbxl_dataset, target_labels)
 
-if use_metadata:
-    mean_meta, std_meta = get_mean_std(ecg_dataset.get_metadata())
-if use_pqrst:
-    mean_pqrst, std_pqrst = get_mean_std(ecg_dataset.get_pqrst_features())
-
-ecg_dataset.transform = Compose([ToTensor(), Normalize(mean_ecg, std_ecg, mean_meta, std_meta, mean_pqrst, std_pqrst)])
-
-train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset(valid_fold=valid_fold, test_fold=test_fold)
+train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
+pos_weight = ecg_dataset.get_pos_weight()
 ecg_dataset.close_dataset()
 
 batch_size    = 32
-learning_rate = 0.001
+learning_rate = 0.0001
 n_epoch       = 15
 num_classes   = len(target_labels)
 
 treshold_preds = 0.5
 
-criterion = nn.BCEWithLogitsLoss()
+criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
 train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
 val_loader   = torch.utils.data.DataLoader(val_dataset,   batch_size=batch_size)

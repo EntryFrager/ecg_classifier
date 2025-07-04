@@ -2,9 +2,10 @@ import torch
 import torch.nn as nn
 import numpy as np
 import os
-import warnings
+import warnings 
 import random
-from sklearn.metrics import f1_score, roc_auc_score, confusion_matrix
+from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+
 
 warnings.filterwarnings("ignore")
 DEFAULT_RANDOM_SEED = 42
@@ -141,8 +142,8 @@ class ResNet(nn.Module):
 
 def train(net, train_loader, val_loader, 
           n_epoch, optimizer, criterion, treshold_preds):
-    train_history = []
-    val_history   = []
+    loss_train_history = []
+    loss_val_history   = []
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
@@ -173,9 +174,7 @@ def train(net, train_loader, val_loader,
                 train_preds.append(bin_preds.cpu().numpy())
         
         train_loss /= len(train_loader)
-        train_metrics = metric_func(np.concatenate(train_labels), np.concatenate(train_preds), np.concatenate(train_prob))
-        train_metrics['loss'] = train_loss
-        train_history.append(train_metrics)
+        loss_train_history.append(train_loss)
 
         net.eval()
 
@@ -194,16 +193,15 @@ def train(net, train_loader, val_loader,
                 val_preds.append(bin_preds.cpu().numpy())
 
         val_loss /= len(val_loader)
-        val_metrics = metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
-        val_metrics['loss'] = val_loss
-        val_history.append(val_metrics)
-        
-        print(f'Train metrics: \n\tf1 mean score = {train_metrics['f1_mean']:.4f}, \n\troc auc mean = {train_metrics['roc_auc_mean']:.4f}, \
-              \n\tsensitivity = {train_metrics['sens_mean']:.4f}, \n\tspecifisity = {train_metrics['spec_mean']:.4f}, \n\tloss = {train_metrics['loss']:.4f}\n'
-              f'Validation metrics: \n\tf1 mean score = {val_metrics['f1_mean']:.4f}, \n\troc auc mean = {val_metrics['roc_auc_mean']:.4f}, \
-              \n\tsensitivity = {val_metrics['sens_mean']:.4f}, \n\tspecifisity = {val_metrics['spec_mean']:.4f}, \n\tloss = {val_metrics['loss']:.4f}\n\n')
+        loss_val_history.append(val_loss)
+
+        print('Validation metrics:')
+        metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
+
+        print(f'train Loss: {train_loss:.4f}\n'
+              f'val Loss: {val_loss:.4f}')
     
-    return net, train_history, val_history
+    return net, loss_train_history, loss_val_history
 
 
 def test(net, test_loader, criterion, treshold_preds):
@@ -227,36 +225,83 @@ def test(net, test_loader, criterion, treshold_preds):
             test_preds.append(bin_preds.cpu().numpy())
 
     test_loss /= len(test_loader)
-    test_metrics = metric_func(np.concatenate(test_labels), np.concatenate(test_preds), np.concatenate(test_prob))
-    test_metrics['loss'] = test_loss
 
-    print(f'Test metrics: \n\tf1 mean score = {test_metrics['f1_mean']:.4f}, \n\troc auc mean = {test_metrics['roc_auc_mean']:.4f}, \
-          \n\tsensitivity = {test_metrics['sens_mean']:.4f}, \n\tspecifisity = {test_metrics['spec_mean']:.4f}, \n\tloss = {test_metrics['loss']:.4f}\n')
+    print('Test metrics:')
+    metric_func(np.concatenate(test_labels), np.concatenate(test_preds), np.concatenate(test_prob))
 
-    return test_metrics
+    print(f'test Loss: {test_loss:.4f}')
+
+    return test_loss
+
 
 def metric_func(bin_labels, bin_preds, preds):
     f1_acc      = []
-    sensitivity = []
-    specificity = []
     roc_auc     = []
+    
+    TP, FP, TN, FN = [], [], [], []
+    sensitivity, specificity, precision = [], [], []
+    my_f1 = []
 
     for i in range(0, bin_labels.shape[1]):
         conf_matrix = confusion_matrix(bin_labels[:, i], bin_preds[:, i], labels=[0, 1])
-        sensitivity.append(conf_matrix[1][1] / (conf_matrix[1][1] + conf_matrix[1][0]) if (conf_matrix[1][1] + conf_matrix[1][0]) != 0 else 0)
-        specificity.append(conf_matrix[0][0] / (conf_matrix[0][0] + conf_matrix[0][1]) if (conf_matrix[0][0] + conf_matrix[0][1]) != 0 else 0)
-        f1_acc.append(f1_score(bin_labels[:, i], bin_preds[:, i], zero_division=0))
+        TP_i, FP_i, TN_i, FN_i = conf_matrix[1][1], conf_matrix[0][1], conf_matrix[0][0], conf_matrix[1][0]
+
+        print('\t\tTP\tFP\tTN\tFN')
+        print(f'\t\t{TP_i}  {FP_i}  {TN_i}  {FN_i}')
+        
+        sensitivity_i = TP_i / (TP_i + FN_i)
+        specificity_i = TN_i / (TN_i + FP_i)
+        precision_i   = TP_i / (TP_i + FP_i)
+
+        TP.append(TP_i)
+        FP.append(FP_i)
+        TN.append(TN_i)
+        FN.append(FN_i)
+
+        sensitivity.append(sensitivity_i)
+        specificity.append(specificity_i)
+        precision.append(precision_i)
+
+        my_f1.append(2 * sensitivity_i * precision_i / (sensitivity_i + precision_i))
         roc_auc.append(roc_auc_score(bin_labels[:, i], preds[:, i]))
 
-    return {
-        'f1_acc': f1_acc,
-        'f1_mean': np.mean(f1_acc),
-        'sens': sensitivity,
-        'sens_mean': np.mean(sensitivity),
-        'spec': specificity,
-        'spec_mean': np.mean(specificity),
-        'roc_auc': roc_auc,
-        'roc_auc_mean': np.mean(roc_auc),
-        'confusion_matrix': conf_matrix
-    }
+    # micro averaging
+
+    TP_mean, FP_mean, TN_mean, FN_mean = np.mean(TP), np.mean(FP), np.mean(TN), np.mean(FN)
+    micro_sensitivity = TP_mean / (TP_mean + FN_mean)
+    micro_specificity = TN_mean / (TN_mean + FP_mean)
+    micro_precision   = TP_mean / (TP_mean + FP_mean)
+
+    micro_f1 = 2 * micro_sensitivity * micro_precision / (micro_sensitivity + micro_precision)
+
+    print(f'Micro averaging:'                           \
+          f'\n\tsensitivity: {micro_sensitivity:.4f}'   \
+          f'\n\tspecificity: {micro_specificity:.4f}'   \
+          f'\n\tprecision:   {micro_precision:.4f}'     \
+          f'\n\tf1 score:    {micro_f1:.4f}')
+
+    # macro averaging
+
+    macro_sensitivity = np.mean(sensitivity)
+    macro_specificity = np.mean(specificity)
+    macro_precision = np.mean(precision)
+
+    macro_f1 = 2 * macro_sensitivity * macro_precision / (macro_sensitivity + macro_precision)
+
+    print(f'Macro averaging:'                           \
+          f'\n\tsensitivity: {macro_sensitivity:.4f}'   \
+          f'\n\tspecificity: {macro_specificity:.4f}'   \
+          f'\n\tprecision:   {macro_precision:.4f}'     \
+          f'\n\tf1 score:    {macro_f1:.4f}')
+
+    # weighted averaging
+    
+    print(f'Weighted averaging with w_k=1:'             \
+          f'\n\tf1_score:   {np.mean(my_f1)}')
+
+    # roc auc and classification report
+
+    print(f'ROC AUC: {np.mean(roc_auc)}')
+
+    print(f'Classification report:\n{classification_report(bin_labels, bin_preds)}')
 

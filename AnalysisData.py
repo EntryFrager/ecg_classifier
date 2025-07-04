@@ -8,13 +8,30 @@ from torch.utils.data import Dataset, Subset
 
 
 class ECGDataset(Dataset):
+    ecg_stat = {
+        'mean': torch.FloatTensor([-0.0018, -0.0013,  0.0005,  0.0016, -0.0011, -0.0004,  0.0002, -0.0009, -0.0015, -0.0017, -0.0008, -0.0021]),
+        'std': torch.FloatTensor([[0.1640, 0.1647, 0.1713, 0.1403, 0.1461, 0.1466, 0.2337, 0.3377, 0.3336, 0.3058, 0.2731, 0.2755]])
+    }
+    
+    metadata_stat = {
+        'mean': torch.tensor(74.2453, dtype=torch.float32),
+        'std': torch.tensor(60.3269, dtype=torch.float32)
+    }
+    
+    pqrst_stat = {
+        'mean': 0,
+        'std': 0
+    }
+
+    valid_fold = 9
+    test_fold  = 10
+
     def __init__(self, 
                  path='data/physionet.org/files/ptb-xl/1.0.1/',  
                  target_labels=None, 
                  sampling_rate=100,
                  use_pqrst=False,
-                 process_metadata=None,
-                 transform=None):
+                 use_metadata=None):
         self.path = path
         self.sampling_rate = sampling_rate
 
@@ -26,14 +43,14 @@ class ECGDataset(Dataset):
         self.labels         = self._set_target_labels()
         self.ecg_signals    = self._process_ecg_signals()
         self.pqrst_features = self._process_pqrst_features() if use_pqrst else None
-        self.metadata       = process_metadata(self.ptbxl_dataset) if process_metadata is not None else None
-        self.transform      = transform
+        self.metadata       = self._process_metadata() if use_metadata else None
+        self.transform      = Compose([ToTensor(), Normalize(self.ecg_stat, self.metadata_stat, self.pqrst_stat)])
 
-    
-    def get_dataset(self, valid_fold=9, test_fold=10):
-        train_idx = np.where((self.ptbxl_dataset.strat_fold != valid_fold) & (self.ptbxl_dataset.strat_fold != test_fold))[0]
-        val_idx   = np.where((self.ptbxl_dataset.strat_fold == valid_fold))[0]
-        test_idx  = np.where((self.ptbxl_dataset.strat_fold == test_fold))[0]
+
+    def get_dataset(self):
+        train_idx = np.where((self.ptbxl_dataset.strat_fold != self.valid_fold) & (self.ptbxl_dataset['strat_fold'] != self.test_fold))[0]
+        val_idx   = np.where((self.ptbxl_dataset.strat_fold == self.valid_fold))[0]
+        test_idx  = np.where((self.ptbxl_dataset.strat_fold == self.test_fold))[0]
 
         train = Subset(self, train_idx)
         val   = Subset(self, val_idx)
@@ -48,7 +65,7 @@ class ECGDataset(Dataset):
         for label, target_labels in self.target_labels.items():
             target_values = np.zeros(len(self.ptbxl_dataset), dtype=int)
             for target_label in target_labels:
-                target_values += self.ptbxl_dataset['scp_codes'].apply(lambda x: 1 if (target_label in x and (x[target_label] >= 50 or x[target_label] == 0)) else 0).to_numpy(dtype=int)
+                target_values += self.ptbxl_dataset['scp_codes'].apply(lambda x: 1 if (target_label in x and (x[target_label] >= 50 or x[target_label] == 0)) else 0).to_numpy(dtype=int) #
             self.ptbxl_dataset[label] = np.where(target_values >= 1, 1, 0)
         
         return self.ptbxl_dataset[self.target_labels.keys()].values
@@ -61,6 +78,18 @@ class ECGDataset(Dataset):
             files = [filename for filename in self.ptbxl_dataset['filename_hr']]
         
         return np.array([wfdb.rdsamp(self.path + file)[0] for file in files])
+    
+
+    def _process_metadata(self):
+        metadata = self.ptbxl_dataset[['age', 'sex', 'height', 'weight']].copy()
+
+        with pd.option_context("future.no_silent_downcasting", True):
+            metadata['age']    = metadata['age'].fillna(metadata['age'].median())
+            metadata['height'] = metadata['height'].fillna(metadata['height'].median())
+            metadata['weight'] = metadata['weight'].fillna(metadata['weight'].median())
+
+        return metadata.values
+
 
         
     def _process_pqrst_features(self):
@@ -90,46 +119,22 @@ class ECGDataset(Dataset):
         return len(self.labels)
     
 
-    def get_ptbxl_dataset(self):
-        return self.ptbxl_dataset
-    
-    
-    def get_scp_statements(self):
-        return self.scp_statements
-    
+    def get_pos_weight(self):
+        pos_weight = []
 
-    def get_label(self):
-        return self.labels
-    
+        train_mask = (self.ptbxl_dataset.strat_fold != self.valid_fold) & (self.ptbxl_dataset['strat_fold'] != self.test_fold)
+        train_label = self.labels[train_mask]
 
-    def get_ecg_signals(self):
-        return self.ecg_signals
-    
+        for key, _ in self.target_labels.items():
+            unique_value = train_label[key].value_counts()
+            pos_weight.append(unique_value['0'] / unique_value['1'])
 
-    def get_pqrst_features(self):
-        return self.pqrst_features
-    
-
-    def get_metadata(self):
-        return self.metadata
+        return pos_weight
 
 
     def close_dataset(self):
         del self.ptbxl_dataset
         del self.scp_statements
-
-    
-    def save_csv(self):
-        os.makedirs('./ParsData/', exist_ok=True)
-
-        if self.ecg_signals is not None:
-            self.ecg_signals.to_csv('./ParsData/ecg_signals.csv')
-        
-        if self.metadata is not None:
-            self.metadata.to_csv('./ParsData/metadata.csv')
-        
-        if self.pqrst_features is not None:
-            self.pqrst_features.to_csv('./ParsData/pqrst_features.csv')
 
 
 class Compose:
@@ -157,16 +162,17 @@ class ToTensor:
 
 
 class Normalize(torch.nn.Module):
-    def __init__(self, mean_ecg, std_ecg, mean_meta, std_meta, mean_pqrst, std_pqrst):
+    def __init__(self, ecg_stat, metadata_stat, pqrst_stat):
         super().__init__()
-        self.mean_ecg = mean_ecg
-        self.std_ecg  = std_ecg
 
-        self.mean_meta = mean_meta
-        self.std_meta  = std_meta
+        self.mean_ecg = ecg_stat['mean']
+        self.std_ecg  = ecg_stat['std']
 
-        self.mean_pqrst = mean_pqrst
-        self.std_pqrst  = std_pqrst
+        self.mean_meta = metadata_stat['mean']
+        self.std_meta  = metadata_stat['std']
+
+        self.mean_pqrst = pqrst_stat['mean']
+        self.std_pqrst  = pqrst_stat['std']
 
 
     def forward(self, sample):
