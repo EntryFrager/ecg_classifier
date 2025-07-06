@@ -172,12 +172,64 @@ class ResNet(nn.Module):
             layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
+    
+
+class early_stopping:
+    def __init__(self, patience, loss_delta, acc_delta):
+        self.best_loss  = None
+        self.best_sens  = None
+        self.best_spec  = None
+        self.best_model = None
+
+        self.loss_delta = loss_delta
+        self.acc_delta  = acc_delta
+
+        self.patience = patience
+        self.counter  = 0
+
+        self.stop = False
+
+
+    def __call__(self, val_loss, sens, spec, net):
+        if self.best_loss is None and self.best_sens is None and self.best_spec is None:
+                self.best_loss  = val_loss
+                self.best_sens  = sens
+                self.best_spec  = spec
+                self.best_model = net.state_dict().copy()
+        elif val_loss >= self.best_loss - self.loss_delta and sens <= self.best_sens + self.acc_delta and spec <= self.best_spec + self.acc_delta:
+            if val_loss <= self.best_loss and sens >= self.best_sens and spec >= self.best_spec:
+                self.best_loss  = val_loss
+                self.best_sens  = sens
+                self.best_spec  = spec
+                self.best_model = net.state_dict().copy()
+                self.counter = 0
+                print(f'Best Loss: {self.best_loss:.4f}\n'
+                      f'Best Sens: {self.best_sens:.4f}\n'
+                      f'Best Spec: {self.best_spec:.4f}')
+            else:
+                self.counter += 1
+
+            print(f"EarlyStopping: {self.counter} / {self.patience}")
+        else:
+            self.counter += 1
+
+        if self.counter >= self.patience:
+            self.stop = True
+
+        return self.stop
+
+    
+    def get_best_net(self):
+        return self.best_model
 
 
 def train(net, train_loader, val_loader, 
-          n_epoch, optimizer, criterion, treshold_preds):
+          n_epoch, optimizer, criterion, 
+          treshold_preds, patience, loss_delta, acc_delta):
     loss_train_history = []
     loss_val_history   = []
+
+    early_stop = early_stopping(patience, loss_delta, acc_delta)
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
@@ -227,13 +279,19 @@ def train(net, train_loader, val_loader,
                 val_preds.append(bin_preds.cpu().numpy())
 
         val_loss /= len(val_loader)
-        loss_val_history.append(val_loss)
+        loss_val_history.append(val_loss)            
 
         print('\nValidation metrics:\n')
-        metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
+        val_sens, val_spec = metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
 
+        if early_stop(val_loss, val_sens, val_spec, net):
+            torch.save(early_stop.get_best_net(), 'save_models/best_model.pt')
+            return net, loss_train_history, loss_val_history
+        
         print(f'\ntrain Loss: {train_loss:.4f}\n'
               f'val Loss: {val_loss:.4f}')
+    
+    torch.save(early_stop.get_best_net(), 'save_models/best_model.pt')
     
     return net, loss_train_history, loss_val_history
 
@@ -340,3 +398,4 @@ def metric_func(bin_labels, bin_preds, preds):
 
     print(f'\nClassification report:\n{classification_report(bin_labels, bin_preds)}')
 
+    return macro_sensitivity, macro_specificity
