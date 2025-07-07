@@ -32,7 +32,6 @@ ecg_dataset = ECGDataset(path,
                          use_metadata=use_metadata)
 
 ptbxl_dataset = ecg_dataset.ptbxl_dataset
-# get_stat(ptbxl_dataset, target_labels)
 
 train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
 pos_weight = ecg_dataset.get_pos_weight().to(device)
@@ -43,7 +42,13 @@ learning_rate = 0.0001
 n_epoch       = 15
 num_classes   = len(target_labels)
 
-treshold_preds = 0.5
+patience   = 3
+loss_delta = 0.1
+acc_delta  = 0.05
+
+dropout_p  = 0.3
+
+treshold_preds = [0.5, 0.5, 0.5, 0.5, 0.5]
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
@@ -55,7 +60,8 @@ net = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=num_classes).to(device)
 optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, weight_decay=1e-4)
 
 net, train_history, val_history = train(net, train_loader, val_loader, 
-                                        n_epoch, optimizer, criterion, treshold_preds)
-test_metrics = test(net, test_loader, criterion, treshold_preds)
+                                        n_epoch, optimizer, criterion, 
+                                        treshold_preds, patience, loss_delta, acc_delta)
+test_loss = test(net, test_loader, criterion, treshold_preds)
 
-print(f"Test metrics: {test_metrics}")
+print(f"Test loss: {test_loss:.4f}")

@@ -5,6 +5,7 @@ import pandas as pd
 import os
 import warnings
 import random
+import copy
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
 
 warnings.filterwarnings("ignore")
@@ -39,7 +40,7 @@ SeedEverything()
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, downsample=None, dropout_p=0.5):
         super().__init__()
 
         self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -47,6 +48,8 @@ class BasicBlock(nn.Module):
         self.relu = nn.ReLU(inplace=True)
         self.conv_2 = nn.Conv1d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.batch_norm_2 = nn.BatchNorm1d(planes)
+
+        self.dropout  = nn.Dropout(dropout_p)
         self.downsample = downsample
         self.stride = stride
 
@@ -57,6 +60,7 @@ class BasicBlock(nn.Module):
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
         out = self.relu(out)
+        out = self.dropout(out)
 
         out = self.conv_2(out)
         out = self.batch_norm_2(out)
@@ -66,6 +70,7 @@ class BasicBlock(nn.Module):
 
         out += residual
         out = self.relu(out)
+        out = self.dropout(out)
 
         return out
 
@@ -73,7 +78,7 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
     
-    def __init__(self, inplanes, planes, stride=1, downsample = None):
+    def __init__(self, inplanes, planes, stride=1, downsample = None, dropout_p=0.5):
         super().__init__()
 
         self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=1, padding=0, bias=False)
@@ -82,8 +87,9 @@ class Bottleneck(nn.Module):
         self.batch_norm_2 = nn.BatchNorm1d(planes)
         self.conv_3 = nn.Conv1d(planes, planes * self.expansion, kernel_size=1, stride=1, padding=0, bias=False)
         self.batch_norm_3 = nn.BatchNorm1d(planes * self.expansion)
-
+        
         self.relu = nn.ReLU(inplace=True)
+        self.dropout  = nn.Dropout(dropout_p)
         self.downsample = downsample
         self.stride = stride
 
@@ -94,29 +100,34 @@ class Bottleneck(nn.Module):
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
         out = self.relu(out)
+        out = self.dropout(out)
 
         out = self.conv_2(out)
         out = self.batch_norm_2(out)
         out = self.relu(out)
+        out = self.dropout(out)
 
         out = self.conv_3(out)
         out = self.batch_norm_3(out)
         out = self.relu(out)
+        out = self.dropout(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
 
         out = out + residual
         out = self.relu(out)
+        out = self.dropout(out)
 
         return out
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, num_classes=1000, dropout_p=0.5):
         super().__init__()
 
         self.inplanes = 64
+        self.dropout_p = dropout_p
 
         self.conv_1 = nn.Conv1d(12, self.inplanes, kernel_size=15, stride=2, padding=7, bias=False)
         self.batch_norm_1 = nn.BatchNorm1d(self.inplanes)
@@ -129,6 +140,7 @@ class ResNet(nn.Module):
         self.layer_4 = self._make_layer(block, 512, layers[3], stride=2)
 
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
+        self.dropout  = nn.Dropout(dropout_p)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
         for m in self.modules():
@@ -152,6 +164,7 @@ class ResNet(nn.Module):
 
         out = self.avg_pool(out)
         out = torch.flatten(out, 1)
+        out = self.dropout(out)
         out = self.fc(out)
 
         return out
@@ -166,18 +179,70 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, stride, downsample, dropout_p=self.dropout_p))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes, dropout_p=self.dropout_p))
 
         return nn.Sequential(*layers)
+    
+
+class early_stopping:
+    def __init__(self, patience, loss_delta, acc_delta):
+        self.best_loss  = None
+        self.best_sens  = None
+        self.best_spec  = None
+        self.best_model = None
+
+        self.loss_delta = loss_delta
+        self.acc_delta  = acc_delta
+
+        self.patience = patience
+        self.counter  = 0
+
+        self.stop = False
+
+
+    def __call__(self, val_loss, sens, spec, net):
+        if self.best_loss is None and self.best_sens is None and self.best_spec is None:
+                self.best_loss  = val_loss
+                self.best_sens  = sens
+                self.best_spec  = spec
+                self.best_model = copy.deepcopy(net)
+        elif val_loss >= self.best_loss - self.loss_delta and sens <= self.best_sens + self.acc_delta and spec <= self.best_spec + self.acc_delta:
+            if val_loss <= self.best_loss and sens >= self.best_sens and spec >= self.best_spec:
+                self.best_loss  = val_loss
+                self.best_sens  = sens
+                self.best_spec  = spec
+                self.best_model = copy.deepcopy(net)
+                self.counter = 0
+                print(f'Best Loss: {self.best_loss:.4f}\n'
+                      f'Best Sens: {self.best_sens:.4f}\n'
+                      f'Best Spec: {self.best_spec:.4f}')
+            else:
+                self.counter += 1
+
+            print(f"EarlyStopping: {self.counter} / {self.patience}")
+        else:
+            self.counter += 1
+
+        if self.counter >= self.patience:
+            self.stop = True
+
+        return self.stop
+
+    
+    def get_best_net(self):
+        return self.best_model
 
 
 def train(net, train_loader, val_loader, 
-          n_epoch, optimizer, criterion, treshold_preds):
+          n_epoch, optimizer, criterion, 
+          treshold_preds, patience, loss_delta, acc_delta):
     loss_train_history = []
     loss_val_history   = []
+
+    early_stop = early_stopping(patience, loss_delta, acc_delta)
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
@@ -227,15 +292,21 @@ def train(net, train_loader, val_loader,
                 val_preds.append(bin_preds.cpu().numpy())
 
         val_loss /= len(val_loader)
-        loss_val_history.append(val_loss)
+        loss_val_history.append(val_loss)            
 
         print('\nValidation metrics:\n')
-        metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
+        val_sens, val_spec = metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
 
+        if early_stop(val_loss, val_sens, val_spec, net):
+            torch.save(early_stop.get_best_net().state_dict(), 'save_best_models/best_model.pt')
+            return early_stop.get_best_net(), loss_train_history, loss_val_history
+        
         print(f'\ntrain Loss: {train_loss:.4f}\n'
               f'val Loss: {val_loss:.4f}')
     
-    return net, loss_train_history, loss_val_history
+    torch.save(early_stop.get_best_net().state_dict(), 'save_best_models/best_model.pt')
+    
+    return early_stop.get_best_net(), loss_train_history, loss_val_history
 
 
 def test(net, test_loader, criterion, treshold_preds):
@@ -332,11 +403,12 @@ def metric_func(bin_labels, bin_preds, preds):
     # weighted averaging
     
     print(f'\nWeighted averaging:' \
-          f'f1_score: {np.mean(f1)}')
+          f'\nf1_score: {np.mean(f1):.4f}')
 
     # roc auc and classification report
 
-    print(f'\nROC AUC: {np.mean(roc_auc)}')
+    print(f'\nROC AUC: {np.mean(roc_auc):.4f}')
 
     print(f'\nClassification report:\n{classification_report(bin_labels, bin_preds)}')
 
+    return macro_sensitivity, macro_specificity
