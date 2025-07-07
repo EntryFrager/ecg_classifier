@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from AnalysisData import ECGDataset
-from Model import ResNet, Bottleneck, BasicBlock, train, test, device
+from Model import ResNet, BasicBlock, train, test, device
 
 
 # def get_stat(dataset, target_labels):
@@ -38,15 +38,13 @@ pos_weight = ecg_dataset.get_pos_weight().to(device)
 ecg_dataset.close_dataset()
 
 batch_size    = 32
-learning_rate = 0.0001
-n_epoch       = 15
+learning_rate = 0.000005
+n_epoch       = 30
 num_classes   = len(target_labels)
 
-patience   = 3
-loss_delta = 0.1
-acc_delta  = 0.05
-
-dropout_p  = 0.3
+patience   = 5
+loss_delta = 0.17
+acc_delta  = 0.15
 
 threshold_preds = [0.5] * len(target_labels)
 
