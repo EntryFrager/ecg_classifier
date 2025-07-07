@@ -93,7 +93,6 @@ class ECGDataset(Dataset):
 
         return metadata.values
 
-
         
     def _process_pqrst_features(self):
         # in develop

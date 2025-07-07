@@ -1,12 +1,13 @@
 import torch
 import torch.nn as nn
+from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
 import os
 import warnings
 import random
 import copy
-from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report
+from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report, precision_recall_curve
 
 warnings.filterwarnings("ignore")
 DEFAULT_RANDOM_SEED = 42
@@ -60,7 +61,7 @@ class BasicBlock(nn.Module):
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
         out = self.relu(out)
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
         out = self.conv_2(out)
         out = self.batch_norm_2(out)
@@ -70,7 +71,7 @@ class BasicBlock(nn.Module):
 
         out += residual
         out = self.relu(out)
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
         return out
 
@@ -100,24 +101,24 @@ class Bottleneck(nn.Module):
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
         out = self.relu(out)
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
         out = self.conv_2(out)
         out = self.batch_norm_2(out)
         out = self.relu(out)
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
         out = self.conv_3(out)
         out = self.batch_norm_3(out)
         out = self.relu(out)
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
 
         out = out + residual
         out = self.relu(out)
-        out = self.dropout(out)
+        # out = self.dropout(out)
 
         return out
 
@@ -164,7 +165,7 @@ class ResNet(nn.Module):
 
         out = self.avg_pool(out)
         out = torch.flatten(out, 1)
-        out = self.dropout(out)
+        # out = self.dropout(out)
         out = self.fc(out)
 
         return out
@@ -221,10 +222,10 @@ class EarlyStopping:
                       f'Best Spec: {self.best_spec:.4f}')
             else:
                 self.counter += 1
-
-            print(f"EarlyStopping: {self.counter} / {self.patience}")
         else:
             self.counter += 1
+
+        print(f"EarlyStopping: {self.counter} / {self.patience}")
 
         if self.counter >= self.patience:
             self.stop = True
@@ -238,11 +239,13 @@ class EarlyStopping:
 
 def train(net, train_loader, val_loader, 
           n_epoch, optimizer, criterion, 
-          treshold_preds, patience, loss_delta, acc_delta):
+          threshold_preds, patience, loss_delta, acc_delta):
     loss_train_history = []
     loss_val_history   = []
 
+    writer = SummaryWriter(log_dir='logs')
     early_stop = EarlyStopping(patience, loss_delta, acc_delta)
+    threshold_preds = torch.tensor(threshold_preds, dtype=torch.float32).to(device)
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
@@ -266,7 +269,7 @@ def train(net, train_loader, val_loader,
 
             with torch.no_grad():
                 preds = torch.sigmoid(preds)
-                bin_preds = (preds > treshold_preds).float()
+                bin_preds = (preds > threshold_preds).float()
                 
                 train_prob.append(preds.cpu().numpy())
                 train_labels.append(labels.cpu().numpy())
@@ -284,29 +287,35 @@ def train(net, train_loader, val_loader,
                 val_loss += criterion(preds, labels).item()
 
                 preds = torch.sigmoid(preds)
-
-                bin_preds = (preds > treshold_preds).float()
+                bin_preds = (preds > threshold_preds).float()
 
                 val_prob.append(preds.cpu().numpy())
                 val_labels.append(labels.cpu().numpy())
                 val_preds.append(bin_preds.cpu().numpy())
 
         val_loss /= len(val_loader)
-        loss_val_history.append(val_loss)            
+        loss_val_history.append(val_loss)
 
-        print('\nValidation metrics:\n')
-        val_sens, val_spec = metric_func(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
-
-        if early_stop(val_loss, val_sens, val_spec, net):
-            torch.save(early_stop.get_best_net().state_dict(), 'save_best_models/best_model.pt')
-            return early_stop.get_best_net(), loss_train_history, loss_val_history
+        print('\nValidation metrics:')
+        val_sens, val_spec, threshold_preds = get_metrics(np.concatenate(val_labels), np.concatenate(val_preds), np.concatenate(val_prob))
         
         print(f'\ntrain Loss: {train_loss:.4f}\n'
               f'val Loss: {val_loss:.4f}')
+        
+        writer.add_scalars('Loss', {
+            'train': train_loss,
+            'val': val_loss
+        }, epoch)
+
+        if early_stop(val_loss, val_sens, val_spec, net):
+            break
+    
+    writer.close()
     
     torch.save(early_stop.get_best_net().state_dict(), 'save_best_models/best_model.pt')
+    torch.save(threshold_preds, 'save_best_models/best_threshold.pt')
     
-    return early_stop.get_best_net(), loss_train_history, loss_val_history
+    return early_stop.get_best_net(), threshold_preds, loss_train_history, loss_val_history
 
 
 def test(net, test_loader, criterion, treshold_preds):
@@ -314,6 +323,8 @@ def test(net, test_loader, criterion, treshold_preds):
 
     test_loss = 0.0
     test_preds, test_labels, test_prob = [], [], []
+
+    treshold_preds = torch.tensor(treshold_preds, dtype=torch.float32).to(device)
 
     with torch.no_grad():
         for (batch_idx, test_batch) in enumerate(test_loader): 
@@ -332,41 +343,67 @@ def test(net, test_loader, criterion, treshold_preds):
     test_loss /= len(test_loader)
 
     print('\nTest metrics:')
-    metric_func(np.concatenate(test_labels), np.concatenate(test_preds), np.concatenate(test_prob))
+    get_metrics(np.concatenate(test_labels), np.concatenate(test_preds), np.concatenate(test_prob))
 
     print(f'\ntest Loss: {test_loss:.4f}')
 
     return test_loss
 
 
-def metric_func(bin_labels, bin_preds, preds):    
+def get_metrics(y_true, y_preds, y_probs):    
     TP, FP, TN, FN = [], [], [], []
     sensitivity, specificity, precision = [], [], []
-    f1      = []
-    roc_auc = []
+    f1_score = []
+    roc_auc  = []
 
-    for i in range(0, bin_labels.shape[1]):
-        conf_matrix = confusion_matrix(bin_labels[:, i], bin_preds[:, i], labels=[0, 1])
-        TP_i, FP_i, TN_i, FN_i = conf_matrix[1][1], conf_matrix[0][1], conf_matrix[0][0], conf_matrix[1][0]
+    best_threshold = []
 
-        print(pd.DataFrame([{'TP': TP_i, 'FP': FP_i, 'TN': TN_i, 'FN': FN_i}]).to_string(index=False))
+    print('Confusion matrix:')
+    for i in range(0, y_true.shape[1]):
+        thresholds = np.unique(y_probs[:, i])
+
+        TP_i, FP_i, TN_i, FN_i = [], [], [], []
+        sensitivity_i, specificity_i, precision_i = [], [], []
+        f1_i = []
+
+        for threshold in thresholds:
+            preds = (y_probs[:, i] >= threshold).astype(np.float32)
+            cm = confusion_matrix(y_true[:, i], preds, labels=[0, 1])
+            tn, fp, fn, tp = cm.ravel()
+            sens = tp / (tp + fn)
+            spec = tn / (tn + fp)
+            prec = tp / (tp + fp)
+            f1   = 2 * sens * prec / (sens + prec) if sens + prec != 0 else 0
+
+            TP_i.append(tp)
+            FP_i.append(fp)
+            TN_i.append(tn)
+            FN_i.append(fn)
+
+            sensitivity_i.append(sens)
+            specificity_i.append(spec)
+            precision_i.append(prec)
+
+            f1_i.append(f1)
+
+        best_idx = np.argmax(f1_i)
+        best_threshold.append(thresholds[best_idx])
+
+        print(pd.DataFrame([{'TP': TP_i[best_idx], 'FP': FP_i[best_idx], 'TN': TN_i[best_idx], 'FN': FN_i[best_idx]}]).to_string(index=False))
+
+        TP.append(TP_i[best_idx])
+        FP.append(FP_i[best_idx])
+        TN.append(TN_i[best_idx])
+        FN.append(FN_i[best_idx])
+
+        sensitivity.append(sensitivity_i[best_idx])
+        specificity.append(specificity_i[best_idx])
+        precision.append(precision_i[best_idx])
+
+        f1_score.append(f1_i[best_idx])
+
+        roc_auc.append(roc_auc_score(y_true[:, i], y_probs[:, i]))
         
-        sensitivity_i = TP_i / (TP_i + FN_i)
-        specificity_i = TN_i / (TN_i + FP_i)
-        precision_i   = TP_i / (TP_i + FP_i)
-
-        TP.append(TP_i)
-        FP.append(FP_i)
-        TN.append(TN_i)
-        FN.append(FN_i)
-
-        sensitivity.append(sensitivity_i)
-        specificity.append(specificity_i)
-        precision.append(precision_i)
-
-        f1.append(2 * sensitivity_i * precision_i / (sensitivity_i + precision_i))
-        roc_auc.append(roc_auc_score(bin_labels[:, i], preds[:, i]))
-
     # micro averaging
 
     TP_mean, FP_mean, TN_mean, FN_mean = np.mean(TP), np.mean(FP), np.mean(TN), np.mean(FN)
@@ -403,12 +440,12 @@ def metric_func(bin_labels, bin_preds, preds):
     # weighted averaging
     
     print(f'\nWeighted averaging:' \
-          f'\nf1_score: {np.mean(f1):.4f}')
+          f'\nf1_score: {np.mean(f1_score):.4f}')
 
     # roc auc and classification report
 
     print(f'\nROC AUC: {np.mean(roc_auc):.4f}')
 
-    print(f'\nClassification report:\n{classification_report(bin_labels, bin_preds)}')
+    print(f'\nClassification report from sklearn:\n{classification_report(y_true, y_preds)}')
 
-    return macro_sensitivity, macro_specificity
+    return macro_sensitivity, macro_specificity, torch.tensor(best_threshold, dtype=torch.float32).to(device)

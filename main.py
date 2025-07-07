@@ -48,7 +48,7 @@ acc_delta  = 0.05
 
 dropout_p  = 0.3
 
-treshold_preds = [0.5, 0.5, 0.5, 0.5, 0.5]
+threshold_preds = [0.5] * len(target_labels)
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
@@ -59,9 +59,7 @@ test_loader  = torch.utils.data.DataLoader(test_dataset,  batch_size=batch_size)
 net = ResNet(BasicBlock, [2, 2, 2, 2], num_classes=num_classes).to(device)
 optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, weight_decay=1e-4)
 
-net, train_history, val_history = train(net, train_loader, val_loader, 
-                                        n_epoch, optimizer, criterion, 
-                                        treshold_preds, patience, loss_delta, acc_delta)
-test_loss = test(net, test_loader, criterion, treshold_preds)
-
-print(f"Test loss: {test_loss:.4f}")
+net, threshold_preds, train_history, val_history = train(net, train_loader, val_loader, 
+                                                         n_epoch, optimizer, criterion, 
+                                                         threshold_preds, patience, loss_delta, acc_delta)
+test_loss = test(net, test_loader, criterion, threshold_preds)

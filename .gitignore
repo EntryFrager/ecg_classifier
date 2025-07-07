@@ -3,3 +3,4 @@ ecg_venv/
 __pycache__/
 ParsData/
 save_best_models/
+logs/
