@@ -42,11 +42,13 @@ learning_rate = 0.0001
 n_epoch       = 15
 num_classes   = len(target_labels)
 
-patience   = 5
-loss_delta = 0.01
-acc_delta  = 0.005
+patience   = 3
+loss_delta = 0.1
+acc_delta  = 0.05
 
-treshold_preds = 0.5
+dropout_p  = 0.3
+
+treshold_preds = [0.5, 0.5, 0.5, 0.5, 0.5]
 
 criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weight)
 
@@ -60,6 +62,6 @@ optimizer = torch.optim.Adam(net.parameters(), lr=learning_rate, weight_decay=1e
 net, train_history, val_history = train(net, train_loader, val_loader, 
                                         n_epoch, optimizer, criterion, 
                                         treshold_preds, patience, loss_delta, acc_delta)
-test_metrics = test(net, test_loader, criterion, treshold_preds)
+test_loss = test(net, test_loader, criterion, treshold_preds)
 
-print(f"Test metrics: {test_metrics}")
+print(f"Test loss: {test_loss:.4f}")
