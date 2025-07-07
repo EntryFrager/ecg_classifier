@@ -187,7 +187,7 @@ class ResNet(nn.Module):
         return nn.Sequential(*layers)
     
 
-class early_stopping:
+class EarlyStopping:
     def __init__(self, patience, loss_delta, acc_delta):
         self.best_loss  = None
         self.best_sens  = None
@@ -242,7 +242,7 @@ def train(net, train_loader, val_loader,
     loss_train_history = []
     loss_val_history   = []
 
-    early_stop = early_stopping(patience, loss_delta, acc_delta)
+    early_stop = EarlyStopping(patience, loss_delta, acc_delta)
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
