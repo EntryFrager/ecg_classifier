@@ -1,15 +1,7 @@
 import torch
 import torch.nn as nn
 
-from AnalysisData import ECGDataset
-from Model import ResNet, BasicBlock, train, test, device
-
-
-# def get_stat(dataset, target_labels):
-#     for key, _ in target_labels.items():
-#         label = dataset[key].value_counts()
-#         print(f'{key} unique labels: {label}')
-
+from ecg_classifier import ECGDataset, ResNet, BasicBlock, train, test, device
 
 path = "data/physionet.org/files/ptb-xl/1.0.1/"
 sampling_rate = 100
