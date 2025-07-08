@@ -4,3 +4,4 @@ __pycache__/
 ParsData/
 save_best_models/
 logs/
+*.egg-info/
