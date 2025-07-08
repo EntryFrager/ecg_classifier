@@ -94,7 +94,6 @@ class ECGDataset(Dataset):
 
         return metadata.values
 
-
         
     def _process_pqrst_features(self):
         # in develop
@@ -127,11 +126,11 @@ class ECGDataset(Dataset):
         pos_weight = []
 
         train_mask = (self.ptbxl_dataset.strat_fold != self.valid_fold) & (self.ptbxl_dataset['strat_fold'] != self.test_fold)
-        train_label = self.labels[train_mask]
+        train = self.ptbxl_dataset[train_mask]
 
-        for key, _ in self.target_labels.items():
-            unique_value = train_label[key].value_counts()
-            pos_weight.append(unique_value['0'] / unique_value['1'])
+        for label, _ in self.target_labels.items():
+            unique_value = train[label].value_counts()
+            pos_weight.append(unique_value[0] / unique_value[1])
 
         return torch.tensor(pos_weight, dtype=torch.float32)
 
