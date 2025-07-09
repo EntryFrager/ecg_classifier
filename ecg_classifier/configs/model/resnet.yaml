@@ -1,0 +1,6 @@
+#ResNet.yaml
+
+_target_: ecg_classifier.ResNet
+block: ecg_classifier.BasicBlock
+layers: [2, 2, 2, 2]
+num_classes: ${dataset.num_classes}

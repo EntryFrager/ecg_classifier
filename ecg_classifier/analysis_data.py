@@ -68,7 +68,7 @@ class ECGDataset(Dataset):
         for label, target_labels in self.target_labels.items():
             target_values = np.zeros(len(self.ptbxl_dataset), dtype=int)
             for target_label in target_labels:
-                target_values += self.ptbxl_dataset['scp_codes'].apply(lambda x: 1 if (target_label in x and (x[target_label] >= 50 or x[target_label] == 0)) else 0).to_numpy(dtype=int) #
+                target_values += self.ptbxl_dataset['scp_codes'].apply(lambda x: 1 if target_label in x else 0).to_numpy(dtype=int)
             self.ptbxl_dataset[label] = np.where(target_values >= 1, 1, 0)
         
         return self.ptbxl_dataset[self.target_labels.keys()].values
@@ -80,7 +80,7 @@ class ECGDataset(Dataset):
         elif self.sampling_rate == 500:
             files = [filename for filename in self.ptbxl_dataset['filename_hr']]
         
-        return np.array([wfdb.rdsamp(self.path + file)[0] for file in files])
+        return files
     
 
     def _process_metadata(self):
@@ -100,7 +100,7 @@ class ECGDataset(Dataset):
     
     
     def __getitem__(self, index):
-        sample = {'ecg_signals': self.ecg_signals[index],
+        sample = {'ecg_signals': wfdb.rdsamp(self.path + self.ecg_signals[index])[0],
                   'labels': self.labels[index]}
 
         if self.metadata is not None:

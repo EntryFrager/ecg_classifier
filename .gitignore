@@ -5,3 +5,4 @@ ParsData/
 save_best_models/
 logs/
 *.egg-info/
+outputs/

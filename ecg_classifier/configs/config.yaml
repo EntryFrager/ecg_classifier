@@ -1,0 +1,15 @@
+# configs/config.yaml
+
+defaults:
+  - dataset: ds
+  - model: resnet
+  - optimizer: adam
+  - criterion: cr
+
+train:
+    batch_size: 32
+    learning_rate: 0.000005
+    n_epoch: 30
+
+early_stopping:
+    patience: 3

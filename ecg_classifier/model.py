@@ -7,7 +7,9 @@ import os
 import warnings
 import random
 import copy
+import hydra
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report, precision_recall_curve
+
 
 warnings.filterwarnings("ignore")
 DEFAULT_RANDOM_SEED = 42
@@ -119,6 +121,9 @@ class ResNet(nn.Module):
     def __init__(self, block, layers, num_classes=1000):
         super().__init__()
 
+        if isinstance(block, str):
+            block = hydra.utils.get_class(block)
+
         self.inplanes = 64
 
         self.conv_1 = nn.Conv1d(12, self.inplanes, kernel_size=15, stride=2, padding=7, bias=False)
@@ -175,18 +180,15 @@ class ResNet(nn.Module):
             layers.append(block(self.inplanes, planes))
 
         return nn.Sequential(*layers)
-    
+
 
 class EarlyStopping:
-    def __init__(self, patience, loss_delta, acc_delta):
+    def __init__(self, patience):
         self.best_loss  = None
         self.best_sens  = None
         self.best_spec  = None
         self.best_model = None
         self.best_threshold = None
-
-        self.loss_delta = loss_delta
-        self.acc_delta  = acc_delta
 
         self.patience = patience
         self.counter  = 0
@@ -201,19 +203,16 @@ class EarlyStopping:
                 self.best_spec  = spec
                 self.best_model = copy.deepcopy(net)
                 self.best_threshold = threshold
-        elif loss >= self.best_loss - self.loss_delta and (self.best_sens - self.acc_delta <= sens <= self.best_sens + self.acc_delta or spec <= self.best_spec + self.acc_delta):
-            if loss <= self.best_loss and (sens >= self.best_sens or spec >= self.best_spec):
-                self.best_loss  = loss
-                self.best_sens  = sens
-                self.best_spec  = spec
-                self.best_model = copy.deepcopy(net)
-                self.best_threshold = threshold
-                self.counter = 0
-                print(f'Best Loss: {self.best_loss:.4f}\n'
-                      f'Best Sens: {self.best_sens:.4f}\n'
-                      f'Best Spec: {self.best_spec:.4f}')
-            else:
-                self.counter += 1
+        elif loss <= self.best_loss and (sens >= self.best_sens or spec >= self.best_spec):
+            self.best_loss  = loss
+            self.best_sens  = sens
+            self.best_spec  = spec
+            self.best_model = copy.deepcopy(net)
+            self.best_threshold = threshold
+            self.counter = 0
+            print(f'Best Loss: {self.best_loss:.4f}\n'
+                  f'Best Sens: {self.best_sens:.4f}\n'
+                  f'Best Spec: {self.best_spec:.4f}')
         else:
             self.counter += 1
 
@@ -235,12 +234,12 @@ class EarlyStopping:
 
 def train(net, train_loader, val_loader, 
           n_epoch, optimizer, criterion, 
-          threshold_preds, patience, loss_delta, acc_delta):
+          threshold_preds, patience):
     loss_train_history = []
     loss_val_history   = []
 
     writer = SummaryWriter(log_dir='logs')
-    early_stop = EarlyStopping(patience, loss_delta, acc_delta)
+    early_stop = EarlyStopping(patience)
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
@@ -303,7 +302,7 @@ def train(net, train_loader, val_loader,
     return early_stop.get_best_net(), early_stop.get_best_threshold(), loss_train_history, loss_val_history
 
 
-def test(net, test_loader, criterion, treshold_preds):
+def test(net, test_loader, criterion, threshold_preds):
     net.eval()
 
     test_loss = 0.0
@@ -324,7 +323,7 @@ def test(net, test_loader, criterion, treshold_preds):
     test_loss /= len(test_loader)
 
     print('\nTest metrics:')
-    get_metrics(np.concatenate(test_labels), np.concatenate(test_prob), test=True, threshold=treshold_preds)
+    get_metrics(np.concatenate(test_labels), np.concatenate(test_prob), test=True, threshold=threshold_preds)
 
     print(f'\ntest Loss: {test_loss:.4f}')
 
@@ -332,6 +331,9 @@ def test(net, test_loader, criterion, treshold_preds):
 
 
 def get_metrics(y_true, y_probs, test=False, threshold=None):
+    if test and threshold is None:
+        raise ValueError("Threshold must be defined when test = True")
+
     TP, FP, TN, FN = [], [], [], []
     sensitivity, specificity, precision = [], [], []
     roc_auc = []
@@ -340,67 +342,36 @@ def get_metrics(y_true, y_probs, test=False, threshold=None):
 
     if test:
         y_preds = (y_probs >= threshold).astype(np.float32)
+        best_threshold = threshold
 
     print('Confusion matrix:')
     for i in range(0, y_true.shape[1]):
-        if test:
-            conf_matrix = confusion_matrix(y_true[:, i], y_preds[:, i], labels=[0, 1])
-            tn, fp, fn, tp = conf_matrix.ravel()
+        if not test:
+            prec, sens, thresholds = precision_recall_curve(y_true[:, i], y_probs[:, i])
+            f1 = 2 * sens[:-1] * prec[:-1] / (sens[:-1] + prec[:-1])
 
-            print(pd.DataFrame([{'TP': tp, 'FP': fp, 'TN': tn, 'FN': fn}]).to_string(index=False))
-            
-            sensitivity_i = tp / (tp + fn)
-            specificity_i = tn / (tn + fp)
-            precision_i   = tp / (tp + fp)
-
-            TP.append(tp)
-            FP.append(fp)
-            TN.append(tn)
-            FN.append(fn)
-
-            sensitivity.append(sensitivity_i)
-            specificity.append(specificity_i)
-            precision.append(precision_i)
-        else:
-            thresholds = np.unique(y_probs[:, i])
-
-            TP_i, FP_i, TN_i, FN_i = [], [], [], []
-            sensitivity_i, specificity_i, precision_i = [], [], []
-            f1_i = []
-
-            for threshold in thresholds:
-                preds = (y_probs[:, i] >= threshold).astype(np.float32)
-                cm = confusion_matrix(y_true[:, i], preds, labels=[0, 1])
-                tn, fp, fn, tp = cm.ravel()
-                sens = tp / (tp + fn)
-                spec = tn / (tn + fp)
-                prec = tp / (tp + fp)
-                f1   = 2 * sens * prec / (sens + prec) if sens + prec != 0 else 0
-
-                TP_i.append(tp)
-                FP_i.append(fp)
-                TN_i.append(tn)
-                FN_i.append(fn)
-
-                sensitivity_i.append(sens)
-                specificity_i.append(spec)
-                precision_i.append(prec)
-
-                f1_i.append(f1)
-
-            best_idx = np.argmax(f1_i)
+            best_idx = np.nanargmax(f1)
             best_threshold.append(thresholds[best_idx])
 
-            print(pd.DataFrame([{'TP': TP_i[best_idx], 'FP': FP_i[best_idx], 'TN': TN_i[best_idx], 'FN': FN_i[best_idx]}]).to_string(index=False))
+        y_preds = (y_probs[:, i] >= best_threshold[i]).astype(np.float32)
 
-            TP.append(TP_i[best_idx])
-            FP.append(FP_i[best_idx])
-            TN.append(TN_i[best_idx])
-            FN.append(FN_i[best_idx])
+        conf_matrix = confusion_matrix(y_true[:, i], y_preds, labels=[0, 1])
+        tn, fp, fn, tp = conf_matrix.ravel()
 
-            sensitivity.append(sensitivity_i[best_idx])
-            specificity.append(specificity_i[best_idx])
-            precision.append(precision_i[best_idx])
+        print(pd.DataFrame([{'TP': tp, 'FP': fp, 'TN': tn, 'FN': fn}]).to_string(index=False))
+        
+        sensitivity_i = tp / (tp + fn)
+        specificity_i = tn / (tn + fp)
+        precision_i   = tp / (tp + fp)
+
+        TP.append(tp)
+        FP.append(fp)
+        TN.append(tn)
+        FN.append(fn)
+
+        sensitivity.append(sensitivity_i)
+        specificity.append(specificity_i)
+        precision.append(precision_i)
 
         roc_auc.append(roc_auc_score(y_true[:, i], y_probs[:, i]))
         
@@ -419,7 +390,7 @@ def get_metrics(y_true, y_probs, test=False, threshold=None):
         'specificity': micro_specificity,
         'precision':   micro_precision,
         'f1 score':    micro_f1
-    }, orient='index').to_string(header=False))
+        }, orient='index').to_string(header=False))
 
     # macro averaging
 
@@ -441,8 +412,7 @@ def get_metrics(y_true, y_probs, test=False, threshold=None):
 
     print(f'\nROC AUC: {np.mean(roc_auc):.4f}')
 
-    if not test:
-        y_preds = (y_probs >= best_threshold).astype(np.float32)
+    y_preds = (y_probs >= best_threshold).astype(np.float32)
 
     print(f'\nClassification report from sklearn:\n{classification_report(y_true, y_preds)}')
 

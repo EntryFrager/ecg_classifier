@@ -1,0 +1,14 @@
+#ds.yaml
+
+path: "data/physionet.org/files/ptb-xl/1.0.1/"
+sampling_rate: 100
+target_labels: {
+      'sinus': ['NORM', 'SR'],
+      'arrit': ['SARRH', 'SVARR'],
+      'tach': ['STACH', 'SVATC', 'PSVT'],
+      'brad': ['SBRAD'],
+      'afib': ['AFIB', 'AFLT']
+  }
+num_classes: 5
+use_metadata: False
+use_pqrst: False
