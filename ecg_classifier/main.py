@@ -27,9 +27,9 @@ def main(cfg: DictConfig):
     pos_weight = ecg_dataset.get_pos_weight().to(device)
     ecg_dataset.close_dataset()
 
-    batch_size    = cfg.train.batch_size
-    n_epoch       = cfg.train.n_epoch
-    num_classes   = cfg.dataset.num_classes
+    batch_size  = cfg.train.batch_size
+    n_epoch     = cfg.train.n_epoch
+    num_classes = cfg.dataset.num_classes
 
     patience   = cfg.early_stopping.patience
     threshold_preds = [0.5] * num_classes
@@ -42,10 +42,11 @@ def main(cfg: DictConfig):
 
     net = instantiate(cfg.model).to(device)
     optimizer = instantiate(cfg.optimizer, params=net.parameters())
+    scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
 
     net, threshold_preds, train_history, val_history = train(net, train_loader, val_loader, 
                                                              n_epoch, optimizer, criterion, 
-                                                             threshold_preds, patience)
+                                                             scheduler, threshold_preds, patience)
     test_loss = test(net, test_loader, criterion, threshold_preds)
 
 

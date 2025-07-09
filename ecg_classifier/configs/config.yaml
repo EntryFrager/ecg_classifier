@@ -5,11 +5,14 @@ defaults:
   - model: resnet
   - optimizer: adam
   - criterion: cr
+  - scheduler: scheduler
 
 train:
-    batch_size: 32
-    learning_rate: 0.000005
+    batch_size: 64
+    learning_rate: 0.001
     n_epoch: 30
+    drop_prob_head: 0.3
+    drop_prob_backbone: 0.1
 
 early_stopping:
-    patience: 3
+    patience: 7

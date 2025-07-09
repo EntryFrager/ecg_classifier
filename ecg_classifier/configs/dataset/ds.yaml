@@ -1,7 +1,7 @@
 #ds.yaml
 
 path: "data/physionet.org/files/ptb-xl/1.0.1/"
-sampling_rate: 100
+sampling_rate: 500
 target_labels: {
       'sinus': ['NORM', 'SR'],
       'arrit': ['SARRH', 'SVARR'],

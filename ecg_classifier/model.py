@@ -43,14 +43,18 @@ SeedEverything()
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
+    def __init__(self, inplanes, planes, stride=1, drop_prob=0.0, downsample=None):
         super().__init__()
 
         self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.batch_norm_1 = nn.BatchNorm1d(planes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu_1 = nn.ReLU()
         self.conv_2 = nn.Conv1d(planes, planes, kernel_size=3, stride=1, padding=1, bias=False)
         self.batch_norm_2 = nn.BatchNorm1d(planes)
+        self.relu_2 = nn.ReLU()
+
+        self.drop_1 = nn.Dropout1d(p=drop_prob)
+        self.drop_2 = nn.Dropout1d(p=drop_prob)
 
         self.downsample = downsample
         self.stride = stride
@@ -61,7 +65,8 @@ class BasicBlock(nn.Module):
 
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
-        out = self.relu(out)
+        out = self.relu_1(out)
+        out = self.drop_1(out)
 
         out = self.conv_2(out)
         out = self.batch_norm_2(out)
@@ -70,7 +75,8 @@ class BasicBlock(nn.Module):
             residual = self.downsample(x)
 
         out += residual
-        out = self.relu(out)
+        out = self.relu_2(out)
+        out = self.drop_2(out)
 
         return out
 
@@ -78,17 +84,22 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
     
-    def __init__(self, inplanes, planes, stride=1, downsample = None):
+    def __init__(self, inplanes, planes, stride=1, drop_prob=0.0, downsample = None):
         super().__init__()
 
         self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=1, padding=0, bias=False)
         self.batch_norm_1 = nn.BatchNorm1d(planes)
+        self.drop_1 = nn.Dropout1d(p=drop_prob)
+        self.relu_1 = nn.ReLU()
         self.conv_2 = nn.Conv1d(planes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
         self.batch_norm_2 = nn.BatchNorm1d(planes)
+        self.drop_2 = nn.Dropout1d(p=drop_prob)        
+        self.relu_2 = nn.ReLU()
         self.conv_3 = nn.Conv1d(planes, planes * self.expansion, kernel_size=1, stride=1, padding=0, bias=False)
         self.batch_norm_3 = nn.BatchNorm1d(planes * self.expansion)
-        
-        self.relu = nn.ReLU(inplace=True)
+        self.drop_3 = nn.Dropout1d(p=drop_prob)
+        self.relu_3 = nn.ReLU()
+
         self.downsample = downsample
         self.stride = stride
 
@@ -98,37 +109,40 @@ class Bottleneck(nn.Module):
 
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
-        out = self.relu(out)
+        out = self.relu_1(out)
+        out = self.drop_1(out)
 
         out = self.conv_2(out)
         out = self.batch_norm_2(out)
-        out = self.relu(out)
+        out = self.relu_2(out)
+        out = self.drop_2(out)
 
         out = self.conv_3(out)
         out = self.batch_norm_3(out)
-        out = self.relu(out)
+        out = self.relu_3(out)
+        out = self.drop_3(out)
 
         if self.downsample is not None:
             residual = self.downsample(x)
 
         out = out + residual
-        out = self.relu(out)
 
         return out
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes=1000):
+    def __init__(self, block, layers, num_classes=1000, drop_prob_head=0.5, drop_prob_backbone=0.0):
         super().__init__()
 
         if isinstance(block, str):
             block = hydra.utils.get_class(block)
 
         self.inplanes = 64
+        self.drop_prob_backbone = drop_prob_backbone
 
-        self.conv_1 = nn.Conv1d(12, self.inplanes, kernel_size=15, stride=2, padding=7, bias=False)
+        self.conv_1 = nn.Conv1d(12, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False)
         self.batch_norm_1 = nn.BatchNorm1d(self.inplanes)
-        self.relu = nn.ReLU(inplace=True)
+        self.relu = nn.ReLU()
         self.maxpool_1 = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
         
         self.layer_1 = self._make_layer(block, 64, layers[0])
@@ -136,6 +150,7 @@ class ResNet(nn.Module):
         self.layer_3 = self._make_layer(block, 256, layers[2], stride=2)
         self.layer_4 = self._make_layer(block, 512, layers[3], stride=2)
 
+        self.drop = nn.Dropout1d(p=drop_prob_head)
         self.avg_pool = nn.AdaptiveAvgPool1d(1)
         self.fc = nn.Linear(512 * block.expansion, num_classes)
 
@@ -160,6 +175,7 @@ class ResNet(nn.Module):
 
         out = self.avg_pool(out)
         out = torch.flatten(out, 1)
+        out = self.drop(out)
         out = self.fc(out)
 
         return out
@@ -174,10 +190,10 @@ class ResNet(nn.Module):
             )
 
         layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample))
+        layers.append(block(self.inplanes, planes, stride, self.drop_prob_backbone, downsample))
         self.inplanes = planes * block.expansion
         for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes))
+            layers.append(block(self.inplanes, planes, drop_prob=self.drop_prob_backbone))
 
         return nn.Sequential(*layers)
 
@@ -234,7 +250,7 @@ class EarlyStopping:
 
 def train(net, train_loader, val_loader, 
           n_epoch, optimizer, criterion, 
-          threshold_preds, patience):
+          scheduler, threshold_preds, patience):
     loss_train_history = []
     loss_val_history   = []
 
@@ -280,6 +296,11 @@ def train(net, train_loader, val_loader,
         val_loss /= len(val_loader)
         loss_val_history.append(val_loss)
 
+        scheduler.step(val_loss)
+        for param_group in optimizer.param_groups:
+            print(f"Current learning rate: {param_group['lr']}")
+
+
         print('\nValidation metrics:')
         val_sens, val_spec, threshold_preds = get_metrics(np.concatenate(val_labels), np.concatenate(val_prob), test=False)
         
@@ -289,7 +310,7 @@ def train(net, train_loader, val_loader,
         writer.add_scalars('Loss', {
             'train': train_loss,
             'val': val_loss
-        }, epoch)
+        }, epoch + 1)
 
         if early_stop(val_loss, val_sens, val_spec, net, threshold_preds):
             break
