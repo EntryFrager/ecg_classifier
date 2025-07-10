@@ -5,9 +5,4 @@ from .predict import *
 from .callbacks import *
 from .metrics import *
 
-__all__ = [
-    'models',
-    'predict',
-    'callbacks',
-    'metrics'
-]
+__all__ = ["models", "predict", "callbacks", "metrics"]

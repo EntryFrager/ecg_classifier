@@ -4,8 +4,4 @@ from .data_stat import get_stat
 from .device import device
 from .seed import SeedEverything
 
-__all__ = [
-    'get_stat',
-    'device',
-    'SeedEverything'
-]
+__all__ = ["get_stat", "device", "SeedEverything"]
