@@ -8,7 +8,7 @@ target_labels: {
       'brad': ['SBRAD'],
       'afib': ['AFIB', 'AFLT']
   }
-path: "data/physionet.org/files/ptb-xl/1.0.1/"
+path: "dataset/physionet.org/files/ptb-xl/1.0.1/"
 sampling_rate: 500
 use_metadata: False
 use_pqrst: False
