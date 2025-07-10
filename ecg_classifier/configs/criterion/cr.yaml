@@ -1,3 +1,4 @@
 # cr.yaml
 
 _target_: torch.nn.BCEWithLogitsLoss
+pos_weight: ???

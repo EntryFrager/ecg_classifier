@@ -226,8 +226,6 @@ class EarlyStopping:
     def __init__(self, 
                  patience: int) -> None:
         self.best_loss  = None
-        self.best_sens  = None
-        self.best_spec  = None
         self.best_model = None
         self.best_threshold = None
 
@@ -249,33 +247,22 @@ class EarlyStopping:
                 self.best_spec  = spec
                 self.best_model = copy.deepcopy(net)
                 self.best_threshold = threshold
-        elif loss <= self.best_loss and (sens >= self.best_sens or spec >= self.best_spec):
+        elif loss <= self.best_loss:
             self.best_loss  = loss
-            self.best_sens  = sens
-            self.best_spec  = spec
             self.best_model = copy.deepcopy(net)
             self.best_threshold = threshold
             self.counter = 0
-            print(f'Best Loss: {self.best_loss:.4f}\n'
-                  f'Best Sens: {self.best_sens:.4f}\n'
-                  f'Best Spec: {self.best_spec:.4f}')
+            print(f'\nBest Loss: {self.best_loss:.4f}\n'
+                  f'Best threshold: {self.best_threshold}')
         else:
             self.counter += 1
 
-        print(f"EarlyStopping: {self.counter} / {self.patience}")
+        print(f"EarlyStopping: {self.counter} / {self.patience}\n")
 
         if self.counter >= self.patience:
             self.stop = True
 
         return self.stop
-
-    
-    def get_best_net(self) -> nn.Module:
-        return self.best_model
-    
-
-    def get_best_threshold(self) -> np.ndarray:
-        return self.best_threshold
 
 
 def train(net: nn.Module, 
@@ -285,13 +272,12 @@ def train(net: nn.Module,
           optimizer: torch.optim.Optimizer, 
           criterion: nn.Module, 
           scheduler: Any, 
-          threshold_preds: np.ndarray, 
-          patience: int) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
+          early_stopping: EarlyStopping,
+          threshold_preds: np.ndarray) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
     loss_train_history = []
     loss_val_history   = []
 
     writer = SummaryWriter(log_dir='logs')
-    early_stop = EarlyStopping(patience)
 
     for epoch in range(n_epoch):
         print('Epoch {}/{}:'.format(epoch + 1, n_epoch), flush = True)
@@ -348,15 +334,15 @@ def train(net: nn.Module,
             'val': val_loss
         }, epoch + 1)
 
-        if early_stop(val_loss, val_sens, val_spec, net, threshold_preds):
+        if early_stopping(val_loss, val_sens, val_spec, net, threshold_preds):
             break
     
     writer.close()
     
-    torch.save(early_stop.get_best_net().state_dict(), 'save_best_models/best_model.pt')
-    torch.save(early_stop.get_best_threshold(), 'save_best_models/best_threshold.pt')
+    torch.save(early_stopping.best_model.state_dict(), 'save_best_models/best_model.pt')
+    torch.save(early_stopping.best_threshold, 'save_best_models/best_threshold.pt')
     
-    return early_stop.get_best_net(), early_stop.get_best_threshold(), loss_train_history, loss_val_history
+    return early_stopping.best_model, early_stopping.best_threshold, loss_train_history, loss_val_history
 
 
 def test(net: nn.Module,

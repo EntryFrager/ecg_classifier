@@ -1,0 +1,4 @@
+# es.yaml
+
+_target_: ecg_classifier.EarlyStopping
+patience: 10
