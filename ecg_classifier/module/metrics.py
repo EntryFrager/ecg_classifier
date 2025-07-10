@@ -7,7 +7,7 @@ from sklearn.metrics import (
     classification_report,
     precision_recall_curve,
 )
-from typing import Tuple, List
+from typing import Tuple, List, Callable, Optional
 
 
 def get_metrics(
@@ -26,7 +26,7 @@ def get_metrics(
         )
 
         print(
-            pd.DataFrame([{"TP": tp, "FP": fp, "TN": tn, "FN": fn}]).to_string(
+            pd.DataFrame([{"TP": tp_i, "FP": fp_i, "TN": tn_i, "FN": fn_i}]).to_string(
                 index=False
             )
         )
@@ -132,17 +132,25 @@ def compute_macro_average(
     return macro_sens, macro_spec, macro_prec, macro_f1
 
 
+def default_compute_metric_best_thr(y_true_class, y_prob_class) -> float:
+    prec, sens, thresholds = precision_recall_curve(y_true_class, y_prob_class)
+    f1 = 2 * sens[:-1] * prec[:-1] / (sens[:-1] + prec[:-1])
+
+    best_idx = np.nanargmax(f1)
+    return thresholds[best_idx]
+
+
 def find_best_threshold(
     y_true: np.ndarray,
-    y_probs: np.ndarray,
+    y_prob: np.ndarray,
+    compute_metric_best_thr: Optional[Callable[[np.ndarray, np.ndarray], float]],
 ) -> np.ndarray:
+    if compute_metric_best_thr is None:
+        compute_metric_best_thr = default_compute_metric_best_thr
+
     best_threshold = []
 
     for i in range(0, y_true.shape[1]):
-        prec, sens, thresholds = precision_recall_curve(y_true[:, i], y_probs[:, i])
-        f1 = 2 * sens[:-1] * prec[:-1] / (sens[:-1] + prec[:-1])
-
-        best_idx = np.nanargmax(f1)
-        best_threshold.append(thresholds[best_idx])
+        best_threshold.append(compute_metric_best_thr(y_true[:, i], y_prob[:, i]))
 
     return best_threshold

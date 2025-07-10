@@ -23,7 +23,7 @@ class EarlyStopping:
         net: nn.Module,
         threshold: np.ndarray,
     ) -> bool:
-        if self.best_loss is None and self.best_sens is None and self.best_spec is None:
+        if self.best_loss is None:
             self.best_loss = loss
             self.best_sens = sens
             self.best_spec = spec

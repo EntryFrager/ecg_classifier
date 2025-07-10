@@ -3,7 +3,7 @@ import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 
-from typing import Tuple, List, Any
+from typing import Tuple, List, Any, Callable, Optional
 
 from ecg_classifier.module.callbacks import EarlyStopping
 from ecg_classifier.module.metrics import find_best_threshold, get_metrics
@@ -19,6 +19,7 @@ def train(
     criterion: nn.Module,
     scheduler: Any,
     early_stopping: EarlyStopping,
+    compute_metric_best_thr: Optional[Callable[[np.ndarray, np.ndarray], float]] = None,
 ) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
     loss_train_history = []
     loss_val_history = []
@@ -77,7 +78,9 @@ def train(
         for param_group in optimizer.param_groups:
             print(f"Current learning rate: {param_group['lr']}")
 
-        threshold_preds = find_best_threshold(val_labels, val_prob)
+        threshold_preds = find_best_threshold(
+            val_labels, val_prob, compute_metric_best_thr
+        )
 
         print("\nValidation metrics:")
         val_sens, val_spec = get_metrics(val_labels, val_prob, threshold_preds)
