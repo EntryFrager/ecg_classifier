@@ -1,8 +1,8 @@
 #ResNet.yaml
 
 resnet:
-    _target_: ecg_classifier.ResNet
-    block: ecg_classifier.BasicBlock
+    _target_: ecg_classifier.module.ResNet
+    block: ecg_classifier.module.BasicBlock
     layers: [2, 2, 2, 2]
     num_classes: 5
     drop_prob_head: 0.3

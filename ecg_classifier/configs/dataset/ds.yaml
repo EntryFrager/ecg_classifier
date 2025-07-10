@@ -1,6 +1,6 @@
 # ds.yaml
 
-_target_: ecg_classifier.ECGDataset
+_target_: ecg_classifier.data.ECGDataset
 target_labels: {
       'sinus': ['NORM', 'SR'],
       'arrit': ['SARRH', 'SVARR'],
