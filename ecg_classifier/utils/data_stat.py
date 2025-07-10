@@ -28,20 +28,45 @@ class ToTensor:
         return sample
 
 
+class Normalize(torch.nn.Module):
+    def __init__(
+        self,
+        mean_ecg: torch.Tensor,
+        std_ecg: torch.Tensor,
+        mean_meta: torch.Tensor,
+        std_meta: torch.Tensor,
+        mean_pqrst: torch.Tensor,
+        std_pqrst: torch.Tensor,
+    ) -> None:
+        super().__init__()
+
+        self.mean_ecg = mean_ecg
+        self.std_ecg = std_ecg
+
+        self.mean_meta = mean_meta
+        self.std_meta = std_meta
+
+        self.mean_pqrst = mean_pqrst
+        self.std_pqrst = std_pqrst
+
+    def forward(self, sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+        sample["ecg_signals"] = (sample["ecg_signals"] - self.mean_ecg) / self.std_ecg
+
+        if self.mean_meta is not None:
+            sample["metadata"] = (sample["metadata"] - self.mean_meta) / self.std_meta
+
+        if self.mean_pqrst is not None:
+            sample["pqrst_features"] = (
+                sample["pqrst_features"] - self.mean_pqrst
+            ) / self.std_pqrst
+
+        return sample
+
+
 def get_stat(dataset: pd.DataFrame, target_labels: Dict[str, Any]) -> None:
     for key, _ in target_labels.items():
         label = dataset[key].value_counts()
         print(f"{key} unique labels: {label}")
-
-
-def min_max_norm(sample: Dict[str, np.ndarray]) -> Dict[str, np.ndarray]:
-    for key, value in sample.items():
-        if key != "labels":
-            min = value.min()
-            max = value.max()
-            sample[key] = (value - min) / (max - min)
-
-    return sample
 
 
 def get_mean_std(

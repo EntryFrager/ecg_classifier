@@ -6,10 +6,56 @@ import torch
 from torch.utils.data import Dataset, Subset
 from typing import Tuple, List, Dict
 
-from ecg_classifier.utils.data_stat import Compose, ToTensor, min_max_norm
+from ecg_classifier.utils.data_stat import Compose, ToTensor, Normalize
 
 
 class ECGDataset(Dataset):
+    ecg_stat = {
+        "mean": torch.tensor(
+            [
+                -0.0018,
+                -0.0013,
+                0.0005,
+                0.0016,
+                -0.0011,
+                -0.0004,
+                0.0002,
+                -0.0009,
+                -0.0015,
+                -0.0017,
+                -0.0008,
+                -0.0021,
+            ],
+            dtype=torch.float32,
+        ),
+        "std": torch.tensor(
+            [
+                [
+                    0.1640,
+                    0.1647,
+                    0.1713,
+                    0.1403,
+                    0.1461,
+                    0.1466,
+                    0.2337,
+                    0.3377,
+                    0.3336,
+                    0.3058,
+                    0.2731,
+                    0.2755,
+                ]
+            ],
+            dtype=torch.float32,
+        ),
+    }
+
+    metadata_stat = {
+        "mean": torch.tensor(74.2453, dtype=torch.float32),
+        "std": torch.tensor(60.3269, dtype=torch.float32),
+    }
+
+    pqrst_stat = {"mean": 0, "std": 0}
+
     valid_fold = 9
     test_fold = 10
 
@@ -43,7 +89,15 @@ class ECGDataset(Dataset):
         self.pqrst_features = self._process_pqrst_features() if use_pqrst else None
         self.metadata = self._process_metadata() if use_metadata else None
 
-        self.transform = Compose([min_max_norm, ToTensor()])
+        norm = Normalize(
+            self.ecg_stat["mean"],
+            self.ecg_stat["std"],
+            self.metadata_stat["mean"] if use_metadata else None,
+            self.metadata_stat["std"] if use_metadata else None,
+            self.pqrst_stat["mean"] if use_pqrst else None,
+            self.pqrst_stat["std"] if use_pqrst else None,
+        )
+        self.transform = Compose([ToTensor(), norm])
 
     def get_dataset(self) -> Tuple[Subset, Subset, Subset]:
         train_idx = np.where(
