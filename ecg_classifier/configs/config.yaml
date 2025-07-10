@@ -9,8 +9,8 @@ defaults:
 
 train:
     batch_size: 64
-    learning_rate: 0.001
-    n_epoch: 30
+    learning_rate: 0.005
+    n_epoch: 60
     drop_prob_head: 0.3
     drop_prob_backbone: 0.1
 
