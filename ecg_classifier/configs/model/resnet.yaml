@@ -3,6 +3,6 @@
 _target_: ecg_classifier.ResNet
 block: ecg_classifier.BasicBlock
 layers: [2, 2, 2, 2]
-num_classes: ${dataset.num_classes}
+num_classes: 5
 drop_prob_head: ${train.drop_prob_head}
 drop_prob_backbone: ${train.drop_prob_backbone}

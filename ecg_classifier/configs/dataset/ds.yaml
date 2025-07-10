@@ -1,7 +1,6 @@
 #ds.yaml
 
-path: "data/physionet.org/files/ptb-xl/1.0.1/"
-sampling_rate: 500
+_target_: ecg_classifier.ECGDataset
 target_labels: {
       'sinus': ['NORM', 'SR'],
       'arrit': ['SARRH', 'SVARR'],
@@ -9,6 +8,7 @@ target_labels: {
       'brad': ['SBRAD'],
       'afib': ['AFIB', 'AFLT']
   }
-num_classes: 5
+path: "data/physionet.org/files/ptb-xl/1.0.1/"
+sampling_rate: 500
 use_metadata: False
 use_pqrst: False

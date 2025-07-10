@@ -3,25 +3,14 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from ecg_classifier import ECGDataset, train, test, device, get_stat
+from ecg_classifier import train, test, device
 
 
 @hydra.main(config_path="configs/", config_name="config.yaml", version_base=hydra.__version__)
 def main(cfg: DictConfig):
-    path = cfg.dataset.path
-    sampling_rate = cfg.dataset.sampling_rate
     target_labels = cfg.dataset.target_labels
-    use_metadata = cfg.dataset.use_metadata
-    use_pqrst = cfg.dataset.use_pqrst
 
-    ecg_dataset = ECGDataset(path, 
-                            target_labels, 
-                            sampling_rate, 
-                            use_pqrst=use_pqrst, 
-                            use_metadata=use_metadata)
-
-    ptbxl = ecg_dataset.ptbxl_dataset
-    get_stat(ptbxl, target_labels)
+    ecg_dataset = instantiate(cfg.dataset)
 
     train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
     pos_weight = ecg_dataset.get_pos_weight().to(device)
@@ -29,7 +18,7 @@ def main(cfg: DictConfig):
 
     batch_size  = cfg.train.batch_size
     n_epoch     = cfg.train.n_epoch
-    num_classes = cfg.dataset.num_classes
+    num_classes = cfg.model.num_classes
 
     patience   = cfg.early_stopping.patience
     threshold_preds = [0.5] * num_classes

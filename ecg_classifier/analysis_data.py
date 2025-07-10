@@ -4,6 +4,7 @@ import wfdb
 import ast
 import torch
 from torch.utils.data import Dataset, Subset
+from typing import Optional, Tuple, List, Dict, Any, Union, Iterable, Callable
 
 
 class ECGDataset(Dataset):
@@ -26,11 +27,14 @@ class ECGDataset(Dataset):
     test_fold  = 10
 
     def __init__(self, 
-                 path='data/physionet.org/files/ptb-xl/1.0.1/',  
-                 target_labels=None, 
-                 sampling_rate=100,
-                 use_pqrst=False,
-                 use_metadata=None):
+                 target_labels: Dict[str, list[str]],
+                 path: str = 'data/physionet.org/files/ptb-xl/1.0.1/',   
+                 sampling_rate: int = 100,
+                 use_pqrst: bool = False,
+                 use_metadata: bool = False) -> None:
+        if target_labels is None:
+            raise ValueError("Target labels should be initialized.")
+
         self.path = path
         self.sampling_rate = sampling_rate
 
@@ -50,7 +54,7 @@ class ECGDataset(Dataset):
         self.transform = Compose([ToTensor(), norm])
 
 
-    def get_dataset(self):
+    def get_dataset(self) -> Tuple[Subset, Subset, Subset]:
         train_idx = np.where((self.ptbxl_dataset.strat_fold != self.valid_fold) & (self.ptbxl_dataset['strat_fold'] != self.test_fold))[0]
         val_idx   = np.where((self.ptbxl_dataset.strat_fold == self.valid_fold))[0]
         test_idx  = np.where((self.ptbxl_dataset.strat_fold == self.test_fold))[0]
@@ -62,7 +66,7 @@ class ECGDataset(Dataset):
         return train, val, test
 
 
-    def _set_target_labels(self):
+    def _set_target_labels(self) -> np.ndarray:
         self.ptbxl_dataset['scp_codes'] = self.ptbxl_dataset['scp_codes'].apply(lambda x: ast.literal_eval(x))
 
         for label, target_labels in self.target_labels.items():
@@ -74,7 +78,7 @@ class ECGDataset(Dataset):
         return self.ptbxl_dataset[self.target_labels.keys()].values
 
 
-    def _process_ecg_signals(self):
+    def _process_ecg_signals(self) -> List[str]:
         if self.sampling_rate == 100:
             files = [filename for filename in self.ptbxl_dataset['filename_lr']]
         elif self.sampling_rate == 500:
@@ -83,7 +87,7 @@ class ECGDataset(Dataset):
         return files
     
 
-    def _process_metadata(self):
+    def _process_metadata(self) -> np.ndarray:
         metadata = self.ptbxl_dataset[['age', 'sex', 'height', 'weight']].copy()
 
         with pd.option_context("future.no_silent_downcasting", True):
@@ -99,7 +103,8 @@ class ECGDataset(Dataset):
         return
     
     
-    def __getitem__(self, index):
+    def __getitem__(self,
+                    index: int) -> Dict[str, torch.Tensor]:
         sample = {'ecg_signals': wfdb.rdsamp(self.path + self.ecg_signals[index])[0],
                   'labels': self.labels[index]}
 
@@ -117,11 +122,11 @@ class ECGDataset(Dataset):
         return sample
     
     
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.labels)
     
 
-    def get_pos_weight(self):
+    def get_pos_weight(self) -> torch.Tensor:
         pos_weight = []
 
         train_mask = (self.ptbxl_dataset.strat_fold != self.valid_fold) & (self.ptbxl_dataset['strat_fold'] != self.test_fold)
@@ -134,17 +139,21 @@ class ECGDataset(Dataset):
         return torch.tensor(pos_weight, dtype=torch.float32)
 
 
-    def close_dataset(self):
+    def close_dataset(self) -> None:
         del self.ptbxl_dataset
         del self.scp_statements
 
 
 class Compose:
-    def __init__(self, transforms):
+    def __init__(self, 
+                 transforms: Iterable[Callable[[Any], Any]]) -> None:
+        if transforms is None:
+            raise ValueError("Compose expected a list of transforms, but got None.")
         self.transforms = transforms
 
 
-    def __call__(self, obj):
+    def __call__(self, 
+                 obj: Any) -> Any:
         for t in self.transforms:
             obj = t(obj)
 
@@ -156,7 +165,8 @@ class ToTensor:
         pass
     
     
-    def __call__(self, sample):
+    def __call__(self, 
+                 sample: Dict[str, Any]) -> Dict[str, torch.Tensor]:
         for key, _ in sample.items():
             sample[key] = torch.tensor(sample[key], dtype=torch.float32)
         
@@ -164,7 +174,13 @@ class ToTensor:
 
 
 class Normalize(torch.nn.Module):
-    def __init__(self, mean_ecg, std_ecg, mean_meta, std_meta, mean_pqrst, std_pqrst):
+    def __init__(self, 
+                 mean_ecg: torch.Tensor, 
+                 std_ecg: torch.Tensor, 
+                 mean_meta: torch.Tensor, 
+                 std_meta: torch.Tensor, 
+                 mean_pqrst: torch.Tensor, 
+                 std_pqrst: torch.Tensor) -> None:
         super().__init__()
 
         self.mean_ecg = mean_ecg
@@ -177,7 +193,8 @@ class Normalize(torch.nn.Module):
         self.std_pqrst  = std_pqrst
 
 
-    def forward(self, sample):
+    def forward(self, 
+                sample: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
         sample['ecg_signals'] = (sample['ecg_signals'] - self.mean_ecg) / self.std_ecg
 
         if self.mean_meta is not None:
@@ -189,7 +206,7 @@ class Normalize(torch.nn.Module):
         return sample
 
 
-def get_mean_std(value, axis=None):
+def get_mean_std(value: np.ndarray, axis: Optional[Union[int, Tuple[int, ...]]] = None) -> Tuple[torch.Tensor, torch.Tensor]:
     return torch.tensor(value.mean(axis=axis).astype(np.float32), dtype=torch.float32), \
            torch.tensor(value.std(axis=axis).astype(np.float32), dtype=torch.float32)
 

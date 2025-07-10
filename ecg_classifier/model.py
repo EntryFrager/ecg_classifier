@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.utils.data.dataloader
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
@@ -9,19 +10,20 @@ import random
 import copy
 import hydra
 from sklearn.metrics import roc_auc_score, confusion_matrix, classification_report, precision_recall_curve
+from typing import Optional, Tuple, List, Type, Any
 
 
 warnings.filterwarnings("ignore")
 DEFAULT_RANDOM_SEED = 42
 
 
-def SeedBasic(seed = DEFAULT_RANDOM_SEED):
+def SeedBasic(seed: int = DEFAULT_RANDOM_SEED) -> None:
     random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
     np.random.seed(seed)
 
 
-def SeedTorch(seed = DEFAULT_RANDOM_SEED):
+def SeedTorch(seed: int = DEFAULT_RANDOM_SEED) -> None:
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
 
@@ -29,7 +31,7 @@ def SeedTorch(seed = DEFAULT_RANDOM_SEED):
     torch.backends.cudnn.benchmark     = False
 
 
-def SeedEverything(seed = DEFAULT_RANDOM_SEED):
+def SeedEverything(seed: int = DEFAULT_RANDOM_SEED) -> None:
     SeedBasic(seed)
     SeedTorch(seed)
 
@@ -43,7 +45,12 @@ SeedEverything()
 class BasicBlock(nn.Module):
     expansion = 1
 
-    def __init__(self, inplanes, planes, stride=1, drop_prob=0.0, downsample=None):
+    def __init__(self, 
+                 inplanes: int, 
+                 planes: int, 
+                 stride: int = 1, 
+                 drop_prob: float = 0.0, 
+                 downsample: Optional[nn.Module] = None) -> None:
         super().__init__()
 
         self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=3, stride=stride, padding=1, bias=False)
@@ -60,7 +67,8 @@ class BasicBlock(nn.Module):
         self.stride = stride
 
     
-    def forward(self, x):
+    def forward(self, 
+                x: torch.Tensor) -> torch.Tensor:
         residual = x
 
         out = self.conv_1(x)
@@ -84,7 +92,12 @@ class BasicBlock(nn.Module):
 class Bottleneck(nn.Module):
     expansion = 4
     
-    def __init__(self, inplanes, planes, stride=1, drop_prob=0.0, downsample = None):
+    def __init__(self, 
+                 inplanes: int, 
+                 planes: int, 
+                 stride: int = 1, 
+                 drop_prob: float = 0.0, 
+                 downsample: Optional[nn.Module] = None) -> None:
         super().__init__()
 
         self.conv_1 = nn.Conv1d(inplanes, planes, kernel_size=1, stride=1, padding=0, bias=False)
@@ -104,7 +117,8 @@ class Bottleneck(nn.Module):
         self.stride = stride
 
     
-    def forward(self, x):
+    def forward(self, 
+                x: torch.Tensor) -> torch.Tensor:
         residual = x
 
         out = self.conv_1(x)
@@ -131,7 +145,12 @@ class Bottleneck(nn.Module):
 
 
 class ResNet(nn.Module):
-    def __init__(self, block, layers, num_classes=1000, drop_prob_head=0.5, drop_prob_backbone=0.0):
+    def __init__(self, 
+                 block: str, 
+                 layers: List[int], 
+                 num_classes: int = 1000, 
+                 drop_prob_head: float = 0.5, 
+                 drop_prob_backbone: float = 0.0):
         super().__init__()
 
         if isinstance(block, str):
@@ -162,7 +181,8 @@ class ResNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-    def forward(self, x):
+    def forward(self, 
+                x: torch.Tensor) -> torch.Tensor:
         out = self.conv_1(x)
         out = self.batch_norm_1(out)
         out = self.relu(out)
@@ -181,7 +201,11 @@ class ResNet(nn.Module):
         return out
 
 
-    def _make_layer(self, block, planes, blocks, stride=1):
+    def _make_layer(self, 
+                    block: Type[nn.Module], 
+                    planes: int, 
+                    blocks: int, 
+                    stride: int = 1) -> nn.Sequential:
         downsample = None
         if stride != 1 or self.inplanes != planes * block.expansion:
             downsample = nn.Sequential(
@@ -199,7 +223,8 @@ class ResNet(nn.Module):
 
 
 class EarlyStopping:
-    def __init__(self, patience):
+    def __init__(self, 
+                 patience: int) -> None:
         self.best_loss  = None
         self.best_sens  = None
         self.best_spec  = None
@@ -212,7 +237,12 @@ class EarlyStopping:
         self.stop = False
 
 
-    def __call__(self, loss, sens, spec, net, threshold):
+    def __call__(self, 
+                 loss: float, 
+                 sens: float, 
+                 spec: float, 
+                 net: nn.Module, 
+                 threshold: np.ndarray) -> bool:
         if self.best_loss is None and self.best_sens is None and self.best_spec is None:
                 self.best_loss  = loss
                 self.best_sens  = sens
@@ -240,17 +270,23 @@ class EarlyStopping:
         return self.stop
 
     
-    def get_best_net(self):
+    def get_best_net(self) -> nn.Module:
         return self.best_model
     
 
-    def get_best_threshold(self):
+    def get_best_threshold(self) -> np.ndarray:
         return self.best_threshold
 
 
-def train(net, train_loader, val_loader, 
-          n_epoch, optimizer, criterion, 
-          scheduler, threshold_preds, patience):
+def train(net: nn.Module, 
+          train_loader: torch.utils.data.DataLoader, 
+          val_loader: torch.utils.data.DataLoader, 
+          n_epoch: int, 
+          optimizer: torch.optim.Optimizer, 
+          criterion: nn.Module, 
+          scheduler: Any, 
+          threshold_preds: np.ndarray, 
+          patience: int) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
     loss_train_history = []
     loss_val_history   = []
 
@@ -323,7 +359,10 @@ def train(net, train_loader, val_loader,
     return early_stop.get_best_net(), early_stop.get_best_threshold(), loss_train_history, loss_val_history
 
 
-def test(net, test_loader, criterion, threshold_preds):
+def test(net: nn.Module,
+         test_loader: torch.utils.data.DataLoader, 
+         criterion: nn.Module, 
+         threshold_preds: np.ndarray) -> float:
     net.eval()
 
     test_loss = 0.0
@@ -351,7 +390,10 @@ def test(net, test_loader, criterion, threshold_preds):
     return test_loss
 
 
-def get_metrics(y_true, y_probs, test=False, threshold=None):
+def get_metrics(y_true: np.ndarray, 
+                y_probs: np.ndarray, 
+                test: bool = False, 
+                threshold: np.ndarray = None) -> Tuple[float, float, np.ndarray]:
     if test and threshold is None:
         raise ValueError("Threshold must be defined when test = True")
 
