@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.utils.data.dataloader
 from torch.utils.tensorboard import SummaryWriter
 import numpy as np
 import pandas as pd
@@ -272,10 +271,11 @@ def train(net: nn.Module,
           optimizer: torch.optim.Optimizer, 
           criterion: nn.Module, 
           scheduler: Any, 
-          early_stopping: EarlyStopping,
-          threshold_preds: np.ndarray) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
+          early_stopping: EarlyStopping) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
     loss_train_history = []
     loss_val_history   = []
+
+    threshold_preds = []
 
     writer = SummaryWriter(log_dir='logs')
 
@@ -318,13 +318,17 @@ def train(net: nn.Module,
         val_loss /= len(val_loader)
         loss_val_history.append(val_loss)
 
+        val_labels = np.concatenate(val_labels)
+        val_prob   = np.concatenate(val_prob)
+
         scheduler.step(val_loss)
         for param_group in optimizer.param_groups:
             print(f"Current learning rate: {param_group['lr']}")
 
+        threshold_preds = find_best_threshold(val_labels, val_prob)
 
         print('\nValidation metrics:')
-        val_sens, val_spec, threshold_preds = get_metrics(np.concatenate(val_labels), np.concatenate(val_prob), test=False)
+        val_sens, val_spec = get_metrics(val_labels, val_prob, threshold_preds)
         
         print(f'\ntrain Loss: {train_loss:.4f}'
               f'\nval Loss: {val_loss:.4f}')
@@ -369,7 +373,7 @@ def test(net: nn.Module,
     test_loss /= len(test_loader)
 
     print('\nTest metrics:')
-    get_metrics(np.concatenate(test_labels), np.concatenate(test_prob), test=True, threshold=threshold_preds)
+    get_metrics(np.concatenate(test_labels), np.concatenate(test_prob), threshold_preds)
 
     print(f'\ntest Loss: {test_loss:.4f}')
 
@@ -377,83 +381,53 @@ def test(net: nn.Module,
 
 
 def get_metrics(y_true: np.ndarray, 
-                y_probs: np.ndarray, 
-                test: bool = False, 
-                threshold: np.ndarray = None) -> Tuple[float, float, np.ndarray]:
-    if test and threshold is None:
-        raise ValueError("Threshold must be defined when test = True")
-
-    TP, FP, TN, FN = [], [], [], []
+                y_probs: np.ndarray,
+                threshold: np.ndarray) -> Tuple[float, float]:
+    tp, fp, tn, fn = [], [], [], []
     sensitivity, specificity, precision = [], [], []
     roc_auc = []
 
-    best_threshold = []
-
-    if test:
-        y_preds = (y_probs >= threshold).astype(np.float32)
-        best_threshold = threshold
+    y_pred = (y_probs >= threshold).astype(np.float32)
 
     print('Confusion matrix:')
     for i in range(0, y_true.shape[1]):
-        if not test:
-            prec, sens, thresholds = precision_recall_curve(y_true[:, i], y_probs[:, i])
-            f1 = 2 * sens[:-1] * prec[:-1] / (sens[:-1] + prec[:-1])
-
-            best_idx = np.nanargmax(f1)
-            best_threshold.append(thresholds[best_idx])
-
-        y_preds = (y_probs[:, i] >= best_threshold[i]).astype(np.float32)
-
-        conf_matrix = confusion_matrix(y_true[:, i], y_preds, labels=[0, 1])
-        tn, fp, fn, tp = conf_matrix.ravel()
+        tp_i, fp_i, tn_i, fn_i, sens, spec, prec = compute_confusion_metrics(y_true[:, i], y_pred[:, i])
 
         print(pd.DataFrame([{'TP': tp, 'FP': fp, 'TN': tn, 'FN': fn}]).to_string(index=False))
-        
-        sensitivity_i = tp / (tp + fn)
-        specificity_i = tn / (tn + fp)
-        precision_i   = tp / (tp + fp)
 
-        TP.append(tp)
-        FP.append(fp)
-        TN.append(tn)
-        FN.append(fn)
+        tp.append(tp_i)
+        fp.append(fp_i)
+        tn.append(tn_i)
+        fn.append(fn_i)
 
-        sensitivity.append(sensitivity_i)
-        specificity.append(specificity_i)
-        precision.append(precision_i)
+        sensitivity.append(sens)
+        specificity.append(spec)
+        precision.append(prec)
 
         roc_auc.append(roc_auc_score(y_true[:, i], y_probs[:, i]))
         
+        
     # micro averaging
 
-    TP_mean, FP_mean, TN_mean, FN_mean = np.mean(TP), np.mean(FP), np.mean(TN), np.mean(FN)
-    micro_sensitivity = TP_mean / (TP_mean + FN_mean)
-    micro_specificity = TN_mean / (TN_mean + FP_mean)
-    micro_precision   = TP_mean / (TP_mean + FP_mean)
-
-    micro_f1 = 2 * micro_sensitivity * micro_precision / (micro_sensitivity + micro_precision)
+    micro_sens, micro_spec, micro_prec, micro_f1 = compute_micro_average(tp, fp, tn, fn)
 
     print('\nMicro averaging:')
     print(pd.DataFrame.from_dict({
-        'sensitivity': micro_sensitivity,
-        'specificity': micro_specificity,
-        'precision':   micro_precision,
+        'sensitivity': micro_sens,
+        'specificity': micro_spec,
+        'precision':   micro_prec,
         'f1 score':    micro_f1
         }, orient='index').to_string(header=False))
 
     # macro averaging
 
-    macro_sensitivity = np.mean(sensitivity)
-    macro_specificity = np.mean(specificity)
-    macro_precision   = np.mean(precision)
-
-    macro_f1 = 2 * macro_sensitivity * macro_precision / (macro_sensitivity + macro_precision)
+    macro_sens, macro_spec, macro_prec, macro_f1 = compute_macro_average(sens, spec, prec)
 
     print('\nMacro averaging:')
     print(pd.DataFrame.from_dict({
-        'sensitivity': macro_sensitivity,
-        'specificity': macro_specificity,
-        'precision':   macro_precision,
+        'sensitivity': macro_sens,
+        'specificity': macro_spec,
+        'precision':   macro_prec,
         'f1 score':    macro_f1
     }, orient='index').to_string(header=False))
 
@@ -461,8 +435,58 @@ def get_metrics(y_true: np.ndarray,
 
     print(f'\nROC AUC: {np.mean(roc_auc):.4f}')
 
-    y_preds = (y_probs >= best_threshold).astype(np.float32)
+    print(f'\nClassification report from sklearn:\n{classification_report(y_true, y_pred)}')
 
-    print(f'\nClassification report from sklearn:\n{classification_report(y_true, y_preds)}')
+    return macro_sens, macro_spec
 
-    return macro_sensitivity, macro_specificity, best_threshold
+
+def compute_confusion_metrics(y_true_class: np.ndarray, 
+                              y_pred_class: np.ndarray) -> Tuple[int, int, int, int, float, float, float]:
+    conf_matrix = confusion_matrix(y_true_class, y_pred_class, labels=[0, 1])
+    tn, fp, fn, tp = conf_matrix.ravel()
+    
+    sens = tp / (tp + fn)
+    spec = tn / (tn + fp)
+    prec = tp / (tp + fp)
+
+    return tp, fp, tn, fn, sens, spec, prec
+
+
+def compute_micro_average(tp: List[int],
+                          fp: List[int],
+                          tn: List[int],
+                          fn: List[int]) -> Tuple[float, float, float, float]:
+    tp_mean, fp_mean, tn_mean, fn_mean = np.mean(tp), np.mean(fp), np.mean(tn), np.mean(fn)
+    micro_sens = tp_mean / (tp_mean + fn_mean)
+    micro_spec = tn_mean / (tn_mean + fp_mean)
+    micro_prec = tp_mean / (tp_mean + fp_mean)
+
+    micro_f1 = 2 * micro_sens * micro_prec / (micro_sens + micro_prec)
+
+    return micro_sens, micro_spec, micro_prec, micro_f1
+
+
+def compute_macro_average(sens: float,
+                          spec: float,
+                          prec: float) -> Tuple[float, float, float, float]:
+    macro_sens = np.mean(sens)
+    macro_spec = np.mean(spec)
+    macro_prec = np.mean(prec)
+
+    macro_f1 = 2 * macro_sens * macro_prec / (macro_sens + macro_prec)
+
+    return macro_sens, macro_spec, macro_prec, macro_f1
+
+
+def find_best_threshold(y_true: np.ndarray,
+                        y_probs: np.ndarray,) -> np.ndarray:
+    best_threshold = []
+
+    for i in range(0, y_true.shape[1]):
+        prec, sens, thresholds = precision_recall_curve(y_true[:, i], y_probs[:, i])
+        f1 = 2 * sens[:-1] * prec[:-1] / (sens[:-1] + prec[:-1])
+
+        best_idx = np.nanargmax(f1)
+        best_threshold.append(thresholds[best_idx])
+
+    return best_threshold
