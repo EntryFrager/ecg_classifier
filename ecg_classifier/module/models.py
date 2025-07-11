@@ -214,10 +214,11 @@ class ResNetMeta(nn.Module):
         self,
         block: str,
         layers: List[int],
+        in_channels: int = 12,
         num_classes: int = 1000,
         drop_prob_head: float = 0.5,
         drop_prob_backbone: float = 0.0,
-        num_classes_meta: int = 0,
+        in_channels_meta: int = 0,
         drop_prob_meta: float = 0.0,
     ):
         super().__init__()
@@ -230,7 +231,12 @@ class ResNetMeta(nn.Module):
 
         self.backbone = nn.Sequential(
             nn.Conv1d(
-                12, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False
+                in_channels,
+                self.inplanes,
+                kernel_size=3,
+                stride=2,
+                padding=1,
+                bias=False,
             ),
             nn.BatchNorm1d(self.inplanes),
             nn.ReLU(),
@@ -243,7 +249,7 @@ class ResNetMeta(nn.Module):
         )
 
         self.meta_branch = nn.Sequential(
-            nn.Linear(num_classes_meta, 256),
+            nn.Linear(in_channels_meta, 256),
             nn.BatchNorm1d(256),
             nn.ReLU(),
             nn.Dropout(p=drop_prob_meta),
