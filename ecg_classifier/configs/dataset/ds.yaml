@@ -2,13 +2,12 @@
 
 _target_: ecg_classifier.data.ECGDataset
 target_labels: {
-      'sinus': ['NORM', 'SR'],
       'arrit': ['SARRH', 'SVARR'],
       'tach': ['STACH', 'SVATC', 'PSVT'],
       'brad': ['SBRAD'],
       'afib': ['AFIB', 'AFLT']
   }
 path: "dataset/physionet.org/files/ptb-xl/1.0.1/"
-sampling_rate: 500
+sampling_rate: 100
 use_metadata: False
 use_pqrst: False

@@ -1,0 +1,1225 @@
+Training will take on cuda
+Epoch 1/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 40 645 1456  52
+ TP  FP   TN  FN
+ 73  56 2051  13
+ TP  FP   TN  FN
+ 42  28 2101  22
+ TP  FP   TN  FN
+ 77 107 1930  79
+
+Micro averaging:
+sensitivity  0.582915
+specificity  0.900167
+precision    0.217228
+f1 score     0.316508
+
+Macro averaging:
+sensitivity  0.608365
+specificity  0.900186
+precision    0.410691
+f1 score     0.465459
+
+ROC AUC: 0.8359
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.06      0.43      0.10        92
+           1       0.57      0.85      0.68        86
+           2       0.60      0.66      0.63        64
+           3       0.42      0.49      0.45       156
+
+   micro avg       0.22      0.58      0.32       398
+   macro avg       0.41      0.61      0.47       398
+weighted avg       0.40      0.58      0.45       398
+ samples avg       0.07      0.11      0.08       398
+
+
+train Loss: 1.0408
+val Loss: 0.8602
+EarlyStopping: 0 / 6
+
+Epoch 2/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 55 658 1443  37
+ TP  FP   TN  FN
+ 71  35 2072  15
+ TP  FP   TN  FN
+ 43  18 2111  21
+ TP  FP   TN  FN
+101  58 1979  55
+
+Micro averaging:
+sensitivity  0.678392
+specificity  0.908168
+precision    0.259865
+f1 score     0.375783
+
+Macro averaging:
+sensitivity  0.685680
+specificity  0.908319
+precision    0.521772
+f1 score     0.551375
+
+ROC AUC: 0.8944
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.08      0.60      0.14        92
+           1       0.67      0.83      0.74        86
+           2       0.70      0.67      0.69        64
+           3       0.64      0.65      0.64       156
+
+   micro avg       0.26      0.68      0.38       398
+   macro avg       0.52      0.69      0.55       398
+weighted avg       0.52      0.68      0.55       398
+ samples avg       0.09      0.12      0.10       398
+
+
+train Loss: 0.8973
+val Loss: 0.6833
+
+Best Loss: 0.6833
+Best threshold: [0.4332, 0.8222, 0.7231, 0.716]
+EarlyStopping: 0 / 6
+
+Epoch 3/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 61 636 1465  31
+ TP  FP   TN  FN
+ 72  34 2073  14
+ TP  FP   TN  FN
+ 42  29 2100  22
+ TP  FP   TN  FN
+132  46 1991  24
+
+Micro averaging:
+sensitivity  0.771357
+specificity  0.911034
+precision    0.291825
+f1 score     0.423448
+
+Macro averaging:
+sensitivity  0.750664
+specificity  0.911237
+precision    0.524971
+f1 score     0.579317
+
+ROC AUC: 0.9055
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.09      0.66      0.15        92
+           1       0.68      0.84      0.75        86
+           2       0.59      0.66      0.62        64
+           3       0.74      0.85      0.79       156
+
+   micro avg       0.29      0.77      0.42       398
+   macro avg       0.52      0.75      0.58       398
+weighted avg       0.55      0.77      0.61       398
+ samples avg       0.11      0.14      0.12       398
+
+
+train Loss: 0.8081
+val Loss: 0.6304
+
+Best Loss: 0.6304
+Best threshold: [0.6216, 0.7805, 0.7388, 0.9024]
+EarlyStopping: 0 / 6
+
+Epoch 4/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 39 378 1723  53
+ TP  FP   TN  FN
+ 67  19 2088  19
+ TP  FP   TN  FN
+ 40  15 2114  24
+ TP  FP   TN  FN
+131  31 2006  25
+
+Micro averaging:
+sensitivity  0.695980
+specificity  0.947098
+precision    0.384722
+f1 score     0.495528
+
+Macro averaging:
+sensitivity  0.666932
+specificity  0.947201
+precision    0.602127
+f1 score     0.607120
+
+ROC AUC: 0.9118
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.09      0.42      0.15        92
+           1       0.78      0.78      0.78        86
+           2       0.73      0.62      0.67        64
+           3       0.81      0.84      0.82       156
+
+   micro avg       0.38      0.70      0.50       398
+   macro avg       0.60      0.67      0.61       398
+weighted avg       0.62      0.70      0.63       398
+ samples avg       0.10      0.13      0.11       398
+
+
+train Loss: 0.7510
+val Loss: 0.5616
+
+Best Loss: 0.5616
+Best threshold: [0.5601, 0.9073, 0.8568, 0.8098]
+EarlyStopping: 0 / 6
+
+Epoch 5/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 30 181 1920  62
+ TP  FP   TN  FN
+ 62  14 2093  24
+ TP  FP   TN  FN
+ 43  15 2114  21
+ TP  FP   TN  FN
+138  29 2008  18
+
+Micro averaging:
+sensitivity  0.685930
+specificity  0.971459
+precision    0.533203
+f1 score     0.600000
+
+Macro averaging:
+sensitivity  0.650877
+specificity  0.971481
+precision    0.631424
+f1 score     0.630715
+
+ROC AUC: 0.9278
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.14      0.33      0.20        92
+           1       0.82      0.72      0.77        86
+           2       0.74      0.67      0.70        64
+           3       0.83      0.88      0.85       156
+
+   micro avg       0.53      0.69      0.60       398
+   macro avg       0.63      0.65      0.63       398
+weighted avg       0.65      0.69      0.66       398
+ samples avg       0.11      0.12      0.11       398
+
+
+train Loss: 0.7336
+val Loss: 0.5433
+
+Best Loss: 0.5433
+Best threshold: [0.6715, 0.8822, 0.8093, 0.869]
+EarlyStopping: 0 / 6
+
+Epoch 6/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 39 268 1833  53
+ TP  FP   TN  FN
+ 71  29 2078  15
+ TP  FP   TN  FN
+ 40  15 2114  24
+ TP  FP   TN  FN
+136  34 2003  20
+
+Micro averaging:
+sensitivity  0.718593
+specificity  0.958682
+precision    0.452532
+f1 score     0.555340
+
+Macro averaging:
+sensitivity  0.686572
+specificity  0.958735
+precision    0.591077
+f1 score     0.616389
+
+ROC AUC: 0.9185
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.13      0.42      0.20        92
+           1       0.71      0.83      0.76        86
+           2       0.73      0.62      0.67        64
+           3       0.80      0.87      0.83       156
+
+   micro avg       0.45      0.72      0.56       398
+   macro avg       0.59      0.69      0.62       398
+weighted avg       0.61      0.72      0.65       398
+ samples avg       0.11      0.13      0.12       398
+
+
+train Loss: 0.7278
+val Loss: 0.5774
+EarlyStopping: 1 / 6
+
+Epoch 7/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 30 162 1939  62
+ TP  FP   TN  FN
+ 71  17 2090  15
+ TP  FP   TN  FN
+ 42  13 2116  22
+ TP  FP   TN  FN
+137  16 2021  19
+
+Micro averaging:
+sensitivity  0.703518
+specificity  0.975161
+precision    0.573770
+f1 score     0.632054
+
+Macro averaging:
+sensitivity  0.671531
+specificity  0.975216
+precision    0.655532
+f1 score     0.654993
+
+ROC AUC: 0.9268
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.16      0.33      0.21        92
+           1       0.81      0.83      0.82        86
+           2       0.76      0.66      0.71        64
+           3       0.90      0.88      0.89       156
+
+   micro avg       0.57      0.70      0.63       398
+   macro avg       0.66      0.67      0.65       398
+weighted avg       0.68      0.70      0.69       398
+ samples avg       0.12      0.13      0.12       398
+
+
+train Loss: 0.7151
+val Loss: 0.5249
+
+Best Loss: 0.5249
+Best threshold: [0.6386, 0.8339, 0.8423, 0.9376]
+EarlyStopping: 0 / 6
+
+Epoch 8/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 33 119 1982  59
+ TP  FP   TN  FN
+ 77  33 2074   9
+ TP  FP   TN  FN
+ 43  22 2107  21
+ TP  FP   TN  FN
+141  26 2011  15
+
+Micro averaging:
+sensitivity  0.738693
+specificity  0.976117
+precision    0.595142
+f1 score     0.659193
+
+Macro averaging:
+sensitivity  0.707441
+specificity  0.976150
+precision    0.605739
+f1 score     0.648984
+
+ROC AUC: 0.9412
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.22      0.36      0.27        92
+           1       0.70      0.90      0.79        86
+           2       0.66      0.67      0.67        64
+           3       0.84      0.90      0.87       156
+
+   micro avg       0.60      0.74      0.66       398
+   macro avg       0.61      0.71      0.65       398
+weighted avg       0.64      0.74      0.68       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6896
+val Loss: 0.5294
+EarlyStopping: 1 / 6
+
+Epoch 9/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 33 101 2000  59
+ TP  FP   TN  FN
+ 73  22 2085  13
+ TP  FP   TN  FN
+ 39  13 2116  25
+ TP  FP   TN  FN
+139  22 2015  17
+
+Micro averaging:
+sensitivity  0.713568
+specificity  0.981132
+precision    0.642534
+f1 score     0.676190
+
+Macro averaging:
+sensitivity  0.676983
+specificity  0.981145
+precision    0.657011
+f1 score     0.662013
+
+ROC AUC: 0.9370
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.25      0.36      0.29        92
+           1       0.77      0.85      0.81        86
+           2       0.75      0.61      0.67        64
+           3       0.86      0.89      0.88       156
+
+   micro avg       0.64      0.71      0.68       398
+   macro avg       0.66      0.68      0.66       398
+weighted avg       0.68      0.71      0.69       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6798
+val Loss: 0.5016
+
+Best Loss: 0.5016
+Best threshold: [0.8001, 0.8517, 0.8644, 0.8919]
+EarlyStopping: 0 / 6
+
+Epoch 10/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 45 144 1957  47
+ TP  FP   TN  FN
+ 71  17 2090  15
+ TP  FP   TN  FN
+ 42  15 2114  22
+ TP  FP   TN  FN
+143  30 2007  13
+
+Micro averaging:
+sensitivity  0.756281
+specificity  0.975400
+precision    0.593688
+f1 score     0.665193
+
+Macro averaging:
+sensitivity  0.721907
+specificity  0.975405
+precision    0.652086
+f1 score     0.674973
+
+ROC AUC: 0.9420
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.24      0.49      0.32        92
+           1       0.81      0.83      0.82        86
+           2       0.74      0.66      0.69        64
+           3       0.83      0.92      0.87       156
+
+   micro avg       0.59      0.76      0.67       398
+   macro avg       0.65      0.72      0.67       398
+weighted avg       0.67      0.76      0.70       398
+ samples avg       0.13      0.14      0.14       398
+
+
+train Loss: 0.6754
+val Loss: 0.4833
+
+Best Loss: 0.4833
+Best threshold: [0.7223, 0.925, 0.8415, 0.8409]
+EarlyStopping: 0 / 6
+
+Epoch 11/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 40  90 2011  52
+ TP  FP   TN  FN
+ 67  13 2094  19
+ TP  FP   TN  FN
+ 44  20 2109  20
+ TP  FP   TN  FN
+144  28 2009  12
+
+Micro averaging:
+sensitivity  0.741206
+specificity  0.981968
+precision    0.661435
+f1 score     0.699052
+
+Macro averaging:
+sensitivity  0.706107
+specificity  0.981963
+precision    0.667475
+f1 score     0.683285
+
+ROC AUC: 0.9503
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.31      0.43      0.36        92
+           1       0.84      0.78      0.81        86
+           2       0.69      0.69      0.69        64
+           3       0.84      0.92      0.88       156
+
+   micro avg       0.66      0.74      0.70       398
+   macro avg       0.67      0.71      0.68       398
+weighted avg       0.69      0.74      0.71       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6793
+val Loss: 0.4865
+EarlyStopping: 1 / 6
+
+Epoch 12/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 35  91 2010  57
+ TP  FP   TN  FN
+ 76  22 2085  10
+ TP  FP   TN  FN
+ 42  18 2111  22
+ TP  FP   TN  FN
+141  26 2011  15
+
+Micro averaging:
+sensitivity  0.738693
+specificity  0.981251
+precision    0.651885
+f1 score     0.692580
+
+Macro averaging:
+sensitivity  0.706063
+specificity  0.981257
+precision    0.649400
+f1 score     0.674418
+
+ROC AUC: 0.9383
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.28      0.38      0.32        92
+           1       0.78      0.88      0.83        86
+           2       0.70      0.66      0.68        64
+           3       0.84      0.90      0.87       156
+
+   micro avg       0.65      0.74      0.69       398
+   macro avg       0.65      0.71      0.67       398
+weighted avg       0.68      0.74      0.70       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6567
+val Loss: 0.4972
+EarlyStopping: 2 / 6
+
+Epoch 13/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 41 161 1940  51
+ TP  FP   TN  FN
+ 66  15 2092  20
+ TP  FP   TN  FN
+ 42  18 2111  22
+ TP  FP   TN  FN
+138  23 2014  18
+
+Micro averaging:
+sensitivity  0.721106
+specificity  0.974086
+precision    0.569444
+f1 score     0.636364
+
+Macro averaging:
+sensitivity  0.688490
+specificity  0.974126
+precision    0.643732
+f1 score     0.654353
+
+ROC AUC: 0.9474
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.20      0.45      0.28        92
+           1       0.81      0.77      0.79        86
+           2       0.70      0.66      0.68        64
+           3       0.86      0.88      0.87       156
+
+   micro avg       0.57      0.72      0.64       398
+   macro avg       0.64      0.69      0.65       398
+weighted avg       0.67      0.72      0.69       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6436
+val Loss: 0.4752
+
+Best Loss: 0.4752
+Best threshold: [0.6371, 0.8988, 0.8532, 0.887]
+EarlyStopping: 0 / 6
+
+Epoch 14/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 34  49 2052  58
+ TP  FP   TN  FN
+ 72  16 2091  14
+ TP  FP   TN  FN
+ 41  19 2110  23
+ TP  FP   TN  FN
+136  16 2021  20
+
+Micro averaging:
+sensitivity  0.711055
+specificity  0.988058
+precision    0.738903
+f1 score     0.724712
+
+Macro averaging:
+sensitivity  0.679799
+specificity  0.988076
+precision    0.701473
+f1 score     0.690141
+
+ROC AUC: 0.9437
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.41      0.37      0.39        92
+           1       0.82      0.84      0.83        86
+           2       0.68      0.64      0.66        64
+           3       0.89      0.87      0.88       156
+
+   micro avg       0.74      0.71      0.72       398
+   macro avg       0.70      0.68      0.69       398
+weighted avg       0.73      0.71      0.72       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6497
+val Loss: 0.5047
+EarlyStopping: 1 / 6
+
+Epoch 15/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 45 129 1972  47
+ TP  FP   TN  FN
+ 68  15 2092  18
+ TP  FP   TN  FN
+ 44  23 2106  20
+ TP  FP   TN  FN
+139  18 2019  17
+
+Micro averaging:
+sensitivity  0.743719
+specificity  0.977908
+precision    0.615385
+f1 score     0.673493
+
+Macro averaging:
+sensitivity  0.714588
+specificity  0.977960
+precision    0.654991
+f1 score     0.675754
+
+ROC AUC: 0.9545
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.26      0.49      0.34        92
+           1       0.82      0.79      0.80        86
+           2       0.66      0.69      0.67        64
+           3       0.89      0.89      0.89       156
+
+   micro avg       0.62      0.74      0.67       398
+   macro avg       0.65      0.71      0.68       398
+weighted avg       0.69      0.74      0.71       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6448
+val Loss: 0.4721
+
+Best Loss: 0.4721
+Best threshold: [0.7711, 0.8383, 0.8633, 0.9089]
+EarlyStopping: 0 / 6
+
+Epoch 16/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 47 110 1991  45
+ TP  FP   TN  FN
+ 73  17 2090  13
+ TP  FP   TN  FN
+ 43  19 2110  21
+ TP  FP   TN  FN
+138  21 2016  18
+
+Micro averaging:
+sensitivity  0.756281
+specificity  0.980057
+precision    0.643162
+f1 score     0.695150
+
+Macro averaging:
+sensitivity  0.729049
+specificity  0.980085
+precision    0.667987
+f1 score     0.691446
+
+ROC AUC: 0.9567
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.30      0.51      0.38        92
+           1       0.81      0.85      0.83        86
+           2       0.69      0.67      0.68        64
+           3       0.87      0.88      0.88       156
+
+   micro avg       0.64      0.76      0.70       398
+   macro avg       0.67      0.73      0.69       398
+weighted avg       0.70      0.76      0.72       398
+ samples avg       0.14      0.14      0.14       398
+
+
+train Loss: 0.6353
+val Loss: 0.4738
+EarlyStopping: 1 / 6
+
+Epoch 17/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 44 129 1972  48
+ TP  FP   TN  FN
+ 68  15 2092  18
+ TP  FP   TN  FN
+ 43  25 2104  21
+ TP  FP   TN  FN
+135  25 2012  21
+
+Micro averaging:
+sensitivity  0.728643
+specificity  0.976833
+precision    0.599174
+f1 score     0.657596
+
+Macro averaging:
+sensitivity  0.701555
+specificity  0.976866
+precision    0.637429
+f1 score     0.660689
+
+ROC AUC: 0.9484
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.25      0.48      0.33        92
+           1       0.82      0.79      0.80        86
+           2       0.63      0.67      0.65        64
+           3       0.84      0.87      0.85       156
+
+   micro avg       0.60      0.73      0.66       398
+   macro avg       0.64      0.70      0.66       398
+weighted avg       0.67      0.73      0.69       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6229
+val Loss: 0.4652
+
+Best Loss: 0.4652
+Best threshold: [0.7856, 0.8534, 0.8415, 0.8915]
+EarlyStopping: 0 / 6
+
+Epoch 18/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 52 157 1944  40
+ TP  FP   TN  FN
+ 66  13 2094  20
+ TP  FP   TN  FN
+ 38  11 2118  26
+ TP  FP   TN  FN
+139  23 2014  17
+
+Micro averaging:
+sensitivity  0.741206
+specificity  0.975639
+precision    0.591182
+f1 score     0.657748
+
+Macro averaging:
+sensitivity  0.704359
+specificity  0.975661
+precision    0.679445
+f1 score     0.673074
+
+ROC AUC: 0.9524
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.25      0.57      0.35        92
+           1       0.84      0.77      0.80        86
+           2       0.78      0.59      0.67        64
+           3       0.86      0.89      0.87       156
+
+   micro avg       0.59      0.74      0.66       398
+   macro avg       0.68      0.70      0.67       398
+weighted avg       0.70      0.74      0.70       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6240
+val Loss: 0.4787
+EarlyStopping: 1 / 6
+
+Epoch 19/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 33  69 2032  59
+ TP  FP   TN  FN
+ 69  14 2093  17
+ TP  FP   TN  FN
+ 42  16 2113  22
+ TP  FP   TN  FN
+142  21 2016  14
+
+Micro averaging:
+sensitivity  0.718593
+specificity  0.985670
+precision    0.704433
+f1 score     0.711443
+
+Macro averaging:
+sensitivity  0.681882
+specificity  0.985672
+precision    0.687540
+f1 score     0.683895
+
+ROC AUC: 0.9543
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.32      0.36      0.34        92
+           1       0.83      0.80      0.82        86
+           2       0.72      0.66      0.69        64
+           3       0.87      0.91      0.89       156
+
+   micro avg       0.70      0.72      0.71       398
+   macro avg       0.69      0.68      0.68       398
+weighted avg       0.71      0.72      0.71       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6130
+val Loss: 0.4408
+
+Best Loss: 0.4408
+Best threshold: [0.8188, 0.9171, 0.8677, 0.829]
+EarlyStopping: 0 / 6
+
+Epoch 20/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 41  97 2004  51
+ TP  FP   TN  FN
+ 64  11 2096  22
+ TP  FP   TN  FN
+ 45  26 2103  19
+ TP  FP   TN  FN
+133  16 2021  23
+
+Micro averaging:
+sensitivity  0.711055
+specificity  0.982087
+precision    0.653580
+f1 score     0.681107
+
+Macro averaging:
+sensitivity  0.686382
+specificity  0.982136
+precision    0.669214
+f1 score     0.672588
+
+ROC AUC: 0.9544
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.30      0.45      0.36        92
+           1       0.85      0.74      0.80        86
+           2       0.63      0.70      0.67        64
+           3       0.89      0.85      0.87       156
+
+   micro avg       0.65      0.71      0.68       398
+   macro avg       0.67      0.69      0.67       398
+weighted avg       0.70      0.71      0.70       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6084
+val Loss: 0.4813
+EarlyStopping: 1 / 6
+
+Epoch 21/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 32  39 2062  60
+ TP  FP   TN  FN
+ 68  18 2089  18
+ TP  FP   TN  FN
+ 44  22 2107  20
+ TP  FP   TN  FN
+137  21 2016  19
+
+Micro averaging:
+sensitivity  0.706030
+specificity  0.988058
+precision    0.737533
+f1 score     0.721438
+
+Macro averaging:
+sensitivity  0.676057
+specificity  0.988063
+precision    0.693789
+f1 score     0.683218
+
+ROC AUC: 0.9505
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.45      0.35      0.39        92
+           1       0.79      0.79      0.79        86
+           2       0.67      0.69      0.68        64
+           3       0.87      0.88      0.87       156
+
+   micro avg       0.74      0.71      0.72       398
+   macro avg       0.69      0.68      0.68       398
+weighted avg       0.72      0.71      0.71       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.6053
+val Loss: 0.4681
+EarlyStopping: 2 / 6
+
+Epoch 22/30:
+Current learning rate: 0.001
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 53 147 1954  39
+ TP  FP   TN  FN
+ 71  21 2086  15
+ TP  FP   TN  FN
+ 45  23 2106  19
+ TP  FP   TN  FN
+138  22 2015  18
+
+Micro averaging:
+sensitivity  0.771357
+specificity  0.974564
+precision    0.590385
+f1 score     0.668845
+
+Macro averaging:
+sensitivity  0.747352
+specificity  0.974616
+precision    0.640251
+f1 score     0.679001
+
+ROC AUC: 0.9550
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.27      0.58      0.36        92
+           1       0.77      0.83      0.80        86
+           2       0.66      0.70      0.68        64
+           3       0.86      0.88      0.87       156
+
+   micro avg       0.59      0.77      0.67       398
+   macro avg       0.64      0.75      0.68       398
+weighted avg       0.67      0.77      0.71       398
+ samples avg       0.14      0.14      0.14       398
+
+
+train Loss: 0.5960
+val Loss: 0.4729
+EarlyStopping: 3 / 6
+
+Epoch 23/30:
+Current learning rate: 0.0005
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 31  49 2052  61
+ TP  FP   TN  FN
+ 73  25 2082  13
+ TP  FP   TN  FN
+ 46  25 2104  18
+ TP  FP   TN  FN
+139  19 2018  17
+
+Micro averaging:
+sensitivity  0.726131
+specificity  0.985909
+precision    0.710074
+f1 score     0.718012
+
+Macro averaging:
+sensitivity  0.698892
+specificity  0.985936
+precision    0.665008
+f1 score     0.680194
+
+ROC AUC: 0.9549
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.39      0.34      0.36        92
+           1       0.74      0.85      0.79        86
+           2       0.65      0.72      0.68        64
+           3       0.88      0.89      0.89       156
+
+   micro avg       0.71      0.73      0.72       398
+   macro avg       0.67      0.70      0.68       398
+weighted avg       0.70      0.73      0.71       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.5778
+val Loss: 0.4506
+EarlyStopping: 4 / 6
+
+Epoch 24/30:
+Current learning rate: 0.0005
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 41  75 2026  51
+ TP  FP   TN  FN
+ 73  25 2082  13
+ TP  FP   TN  FN
+ 46  21 2108  18
+ TP  FP   TN  FN
+142  28 2009  14
+
+Micro averaging:
+sensitivity  0.758794
+specificity  0.982207
+precision    0.669623
+f1 score     0.711425
+
+Macro averaging:
+sensitivity  0.730874
+specificity  0.982207
+precision    0.655052
+f1 score     0.690291
+
+ROC AUC: 0.9560
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.35      0.45      0.39        92
+           1       0.74      0.85      0.79        86
+           2       0.69      0.72      0.70        64
+           3       0.84      0.91      0.87       156
+
+   micro avg       0.67      0.76      0.71       398
+   macro avg       0.66      0.73      0.69       398
+weighted avg       0.68      0.76      0.72       398
+ samples avg       0.14      0.14      0.14       398
+
+
+train Loss: 0.5612
+val Loss: 0.4468
+EarlyStopping: 5 / 6
+
+Epoch 25/30:
+Current learning rate: 0.0005
+
+Validation metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 38  88 2013  54
+ TP  FP   TN  FN
+ 69  19 2088  17
+ TP  FP   TN  FN
+ 43  21 2108  21
+ TP  FP   TN  FN
+137  15 2022  19
+
+Micro averaging:
+sensitivity  0.721106
+specificity  0.982923
+precision    0.667442
+f1 score     0.693237
+
+Macro averaging:
+sensitivity  0.691362
+specificity  0.982968
+precision    0.664717
+f1 score     0.675803
+
+ROC AUC: 0.9548
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.30      0.41      0.35        92
+           1       0.78      0.80      0.79        86
+           2       0.67      0.67      0.67        64
+           3       0.90      0.88      0.89       156
+
+   micro avg       0.67      0.72      0.69       398
+   macro avg       0.66      0.69      0.68       398
+weighted avg       0.70      0.72      0.71       398
+ samples avg       0.13      0.13      0.13       398
+
+
+train Loss: 0.5534
+val Loss: 0.4543
+EarlyStopping: 6 / 6
+
+
+Test metrics:
+Confusion matrix:
+ TP  FP   TN  FN
+ 32  58 2054  59
+ TP  FP   TN  FN
+ 74  13 2106  10
+ TP  FP   TN  FN
+ 29  12 2127  35
+ TP  FP   TN  FN
+143  21 2025  14
+
+Micro averaging:
+sensitivity  0.702020
+specificity  0.987643
+precision    0.727749
+f1 score     0.714653
+
+Macro averaging:
+sensitivity  0.649138
+specificity  0.987632
+precision    0.696350
+f1 score     0.665609
+
+ROC AUC: 0.9496
+
+Classification report from sklearn:
+              precision    recall  f1-score   support
+
+           0       0.36      0.35      0.35        91
+           1       0.85      0.88      0.87        84
+           2       0.71      0.45      0.55        64
+           3       0.87      0.91      0.89       157
+
+   micro avg       0.73      0.70      0.71       396
+   macro avg       0.70      0.65      0.67       396
+weighted avg       0.72      0.70      0.71       396
+ samples avg       0.13      0.13      0.13       396
+
+
+test Loss: 0.4903

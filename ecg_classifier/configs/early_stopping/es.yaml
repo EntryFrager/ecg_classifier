@@ -1,4 +1,4 @@
 # es.yaml
 
 _target_: ecg_classifier.module.EarlyStopping
-patience: 10
+patience: 6

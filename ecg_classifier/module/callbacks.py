@@ -36,7 +36,7 @@ class EarlyStopping:
             self.counter = 0
             print(
                 f"\nBest Loss: {self.best_loss:.4f}\n"
-                f"Best threshold: {self.best_threshold}"
+                f"Best threshold: {[round(float(x), 4) for x in self.best_threshold]}"
             )
         else:
             self.counter += 1

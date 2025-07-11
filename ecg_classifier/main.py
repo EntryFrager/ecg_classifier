@@ -4,7 +4,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from ecg_classifier.module import train, test
-from ecg_classifier.utils import device
+from ecg_classifier.utils import device, SeedEverything
 
 
 @hydra.main(
@@ -12,7 +12,6 @@ from ecg_classifier.utils import device
 )
 def main(cfg: DictConfig):
     ecg_dataset = instantiate(cfg.dataset)
-
     train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
     pos_weight = ecg_dataset.get_pos_weight().to(device)
     ecg_dataset.close_dataset()

@@ -31,12 +31,15 @@ def train(
     for epoch in range(n_epoch):
         print("Epoch {}/{}:".format(epoch + 1, n_epoch), flush=True)
 
+        for param_group in optimizer.param_groups:
+            print(f"Current learning rate: {param_group['lr']}")
+
         train_loss = val_loss = 0.0
         val_labels, val_prob = [], []
 
         net.train()
 
-        for batch_idx, train_batch in enumerate(train_loader):
+        for _, train_batch in enumerate(train_loader):
             samples, labels = train_batch["ecg_signals"].to(device), train_batch[
                 "labels"
             ].to(device)
@@ -75,8 +78,6 @@ def train(
         val_prob = np.concatenate(val_prob)
 
         scheduler.step(val_loss)
-        for param_group in optimizer.param_groups:
-            print(f"Current learning rate: {param_group['lr']}")
 
         threshold_preds = find_best_threshold(
             val_labels, val_prob, compute_metric_best_thr

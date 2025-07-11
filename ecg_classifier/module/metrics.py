@@ -62,7 +62,7 @@ def get_metrics(
     # macro averaging
 
     macro_sens, macro_spec, macro_prec, macro_f1 = compute_macro_average(
-        sens, spec, prec
+        sensitivity, specificity, precision
     )
 
     print("\nMacro averaging:")
@@ -105,15 +105,14 @@ def compute_confusion_metrics(
 def compute_micro_average(
     tp: List[int], fp: List[int], tn: List[int], fn: List[int]
 ) -> Tuple[float, float, float, float]:
-    tp_mean, fp_mean, tn_mean, fn_mean = (
-        np.mean(tp),
-        np.mean(fp),
-        np.mean(tn),
-        np.mean(fn),
-    )
-    micro_sens = tp_mean / (tp_mean + fn_mean)
-    micro_spec = tn_mean / (tn_mean + fp_mean)
-    micro_prec = tp_mean / (tp_mean + fp_mean)
+    tp_sum = sum(tp)
+    fp_sum = sum(fp)
+    tn_sum = sum(tn)
+    fn_sum = sum(fn)
+
+    micro_sens = tp_sum / (tp_sum + fn_sum)
+    micro_spec = tn_sum / (tn_sum + fp_sum)
+    micro_prec = tp_sum / (tp_sum + fp_sum)
 
     micro_f1 = 2 * micro_sens * micro_prec / (micro_sens + micro_prec)
 
@@ -121,13 +120,13 @@ def compute_micro_average(
 
 
 def compute_macro_average(
-    sens: float, spec: float, prec: float
+    sens: List[float], spec: List[float], prec: List[float]
 ) -> Tuple[float, float, float, float]:
     macro_sens = np.mean(sens)
     macro_spec = np.mean(spec)
     macro_prec = np.mean(prec)
 
-    macro_f1 = 2 * macro_sens * macro_prec / (macro_sens + macro_prec)
+    macro_f1 = np.mean([2 * s * p / (s + p) for s, p in zip(sens, prec)])
 
     return macro_sens, macro_spec, macro_prec, macro_f1
 
