@@ -1,4 +1,4 @@
-data/
+dataset/
 ecg_venv/
 __pycache__/
 ParsData/

@@ -1,0 +1,14 @@
+#ResNet.yaml
+
+resnet:
+    _target_: ecg_classifier.module.ResNet
+    block: ecg_classifier.module.BasicBlock
+    layers: [2, 2, 2, 2]
+    num_classes: 5
+    drop_prob_head: 0.3
+    drop_prob_backbone: 0.1
+
+train:
+    batch_size: 64
+    learning_rate: 0.005
+    n_epoch: 100

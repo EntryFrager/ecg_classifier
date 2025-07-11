@@ -2,17 +2,8 @@
 
 defaults:
   - dataset: ds
-  - model: resnet
+  - model: model
   - optimizer: adam
   - criterion: cr
   - scheduler: scheduler
-
-train:
-    batch_size: 64
-    learning_rate: 0.005
-    n_epoch: 60
-    drop_prob_head: 0.3
-    drop_prob_backbone: 0.1
-
-early_stopping:
-    patience: 7
+  - early_stopping: es
