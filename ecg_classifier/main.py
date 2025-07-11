@@ -62,8 +62,16 @@ def main(cfg: DictConfig):
         scheduler,
         early_stopping,
         device=device,
+        use_metadata=cfg.dataset.use_metadata,
     )
-    test_loss = test(net, test_loader, criterion, threshold_preds, device)
+    test_loss = test(
+        net,
+        test_loader,
+        criterion,
+        threshold_preds,
+        device=device,
+        use_metadata=cfg.dataset.use_metadata,
+    )
 
 
 if __name__ == "__main__":
