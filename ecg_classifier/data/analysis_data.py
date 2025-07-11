@@ -50,8 +50,12 @@ class ECGDataset(Dataset):
     }
 
     metadata_stat = {
-        "mean": torch.tensor(74.2453, dtype=torch.float32),
-        "std": torch.tensor(60.3269, dtype=torch.float32),
+        "mean": torch.tensor(
+            [59.8451, 0, 166.2265, 70.4307, 28.1411], dtype=torch.float32
+        ),
+        "std": torch.tensor(
+            [16.9191, 1, 6.1526, 10.4431, 227.6297], dtype=torch.float32
+        ),
     }
 
     pqrst_stat = {"mean": 0, "std": 0}
@@ -64,8 +68,8 @@ class ECGDataset(Dataset):
         target_labels: Dict[str, list[str]],
         path: str = "dataset/physionet.org/files/ptb-xl/1.0.1/",
         sampling_rate: int = 100,
-        use_pqrst: bool = False,
         use_metadata: bool = False,
+        use_pqrst: bool = False,
     ) -> None:
         if target_labels is None:
             raise ValueError("Target labels should be initialized.")
@@ -86,8 +90,8 @@ class ECGDataset(Dataset):
 
         self.labels = self._set_target_labels()
         self.ecg_signals = self._process_ecg_signals()
-        self.pqrst_features = self._process_pqrst_features() if use_pqrst else None
         self.metadata = self._process_metadata() if use_metadata else None
+        self.pqrst_features = self._process_pqrst_features() if use_pqrst else None
 
         norm = Normalize(
             self.ecg_stat["mean"],
@@ -136,7 +140,7 @@ class ECGDataset(Dataset):
         elif self.sampling_rate == 500:
             files = [filename for filename in self.ptbxl_dataset["filename_hr"]]
 
-        return files
+        return np.array([wfdb.rdsamp(self.path + file)[0] for file in files])
 
     def _process_metadata(self) -> np.ndarray:
         metadata = self.ptbxl_dataset[["age", "sex", "height", "weight"]].copy()
@@ -146,6 +150,8 @@ class ECGDataset(Dataset):
             metadata["height"] = metadata["height"].fillna(metadata["height"].median())
             metadata["weight"] = metadata["weight"].fillna(metadata["weight"].median())
 
+        metadata["BMI"] = metadata["weight"] / ((metadata["height"] / 100) ** 2)
+
         return metadata.values
 
     def _process_pqrst_features(self):
@@ -154,7 +160,7 @@ class ECGDataset(Dataset):
 
     def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
         sample = {
-            "ecg_signals": wfdb.rdsamp(self.path + self.ecg_signals[index])[0],
+            "ecg_signals": self.ecg_signals[index],
             "labels": self.labels[index],
         }
 

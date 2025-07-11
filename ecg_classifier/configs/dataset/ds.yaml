@@ -9,5 +9,5 @@ target_labels: {
   }
 path: "dataset/physionet.org/files/ptb-xl/1.0.1/"
 sampling_rate: 100
-use_metadata: False
+use_metadata: True
 use_pqrst: False

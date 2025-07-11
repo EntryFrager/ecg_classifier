@@ -207,3 +207,102 @@ class ResNet(nn.Module):
             )
 
         return nn.Sequential(*layers)
+
+
+class ResNetMeta(nn.Module):
+    def __init__(
+        self,
+        block: str,
+        layers: List[int],
+        num_classes: int = 1000,
+        drop_prob_head: float = 0.5,
+        drop_prob_backbone: float = 0.0,
+        num_classes_meta: int = 0,
+        drop_prob_meta: float = 0.0,
+    ):
+        super().__init__()
+
+        if isinstance(block, str):
+            block = hydra.utils.get_class(block)
+
+        self.inplanes = 64
+        self.drop_prob_backbone = drop_prob_backbone
+
+        self.backbone = nn.Sequential(
+            nn.Conv1d(
+                12, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False
+            ),
+            nn.BatchNorm1d(self.inplanes),
+            nn.ReLU(),
+            nn.MaxPool1d(kernel_size=3, stride=2, padding=1),
+            self._make_layer(block, 64, layers[0]),
+            self._make_layer(block, 128, layers[1], stride=2),
+            self._make_layer(block, 256, layers[2], stride=2),
+            self._make_layer(block, 512, layers[3], stride=2),
+            nn.AdaptiveAvgPool1d(1),
+        )
+
+        self.meta_branch = nn.Sequential(
+            nn.Linear(num_classes_meta, 256),
+            nn.BatchNorm1d(256),
+            nn.ReLU(),
+            nn.Dropout(p=drop_prob_meta),
+            nn.Linear(256, 128),
+            nn.BatchNorm1d(128),
+            nn.ReLU(),
+            nn.Dropout(p=drop_prob_meta),
+        )
+
+        self.head = nn.Sequential(
+            nn.Linear(512 * block.expansion + 128, 512),
+            nn.BatchNorm1d(512),
+            nn.ReLU(),
+            nn.Dropout(p=drop_prob_head),
+            nn.Linear(512, num_classes),
+        )
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv1d):
+                nn.init.kaiming_normal_(m.weight, mode="fan_out", nonlinearity="relu")
+            elif isinstance(m, nn.BatchNorm1d):
+                nn.init.constant_(m.weight, 1)
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x_ecg: torch.Tensor, x_meta: torch.Tensor) -> torch.Tensor:
+        out = self.backbone(x_ecg)
+        out = torch.flatten(out, 1)
+
+        out_meta = self.meta_branch(x_meta)
+        out = torch.cat([out, out_meta], dim=1)
+
+        out = self.head(out)
+
+        return out
+
+    def _make_layer(
+        self, block: Type[nn.Module], planes: int, blocks: int, stride: int = 1
+    ) -> nn.Sequential:
+        downsample = None
+        if stride != 1 or self.inplanes != planes * block.expansion:
+            downsample = nn.Sequential(
+                nn.Conv1d(
+                    self.inplanes,
+                    planes * block.expansion,
+                    kernel_size=1,
+                    stride=stride,
+                    bias=False,
+                ),
+                nn.BatchNorm1d(planes * block.expansion),
+            )
+
+        layers = []
+        layers.append(
+            block(self.inplanes, planes, stride, self.drop_prob_backbone, downsample)
+        )
+        self.inplanes = planes * block.expansion
+        for _ in range(1, blocks):
+            layers.append(
+                block(self.inplanes, planes, drop_prob=self.drop_prob_backbone)
+            )
+
+        return nn.Sequential(*layers)

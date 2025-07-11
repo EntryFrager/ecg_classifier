@@ -39,8 +39,15 @@ def main(cfg: DictConfig):
         criterion,
         scheduler,
         early_stopping,
+        use_metadata=cfg.dataset.use_metadata,
     )
-    test_loss = test(net, test_loader, criterion, threshold_preds)
+    test_loss = test(
+        net,
+        test_loader,
+        criterion,
+        threshold_preds,
+        use_metadata=cfg.dataset.use_metadata,
+    )
 
 
 if __name__ == "__main__":
