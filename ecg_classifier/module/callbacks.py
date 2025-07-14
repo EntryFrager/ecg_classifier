@@ -1,3 +1,5 @@
+import os
+import torch
 import torch.nn as nn
 import numpy as np
 
@@ -20,15 +22,11 @@ class EarlyStopping:
     def __call__(
         self,
         loss: float,
-        sens: float,
-        spec: float,
         net: nn.Module,
         threshold: np.ndarray,
     ) -> bool:
         if self.best_loss is None:
             self.best_loss = loss
-            self.best_sens = sens
-            self.best_spec = spec
             self.best_model = copy.deepcopy(net)
             self.best_threshold = threshold
         elif loss <= self.best_loss:
@@ -49,3 +47,9 @@ class EarlyStopping:
             self.stop = True
 
         return self.stop
+
+    def save_best_model(self):
+        os.makedirs("save_best_models", exist_ok=True)
+
+        torch.save(self.best_model.state_dict(), "save_best_models/best_model.pt")
+        torch.save(self.best_threshold, "save_best_models/best_threshold.pt")

@@ -1,4 +1,3 @@
-import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
@@ -27,7 +26,7 @@ def train(
 
     threshold_preds = []
 
-    writer = SummaryWriter(log_dir="logs")  # os.getcwd()
+    writer = SummaryWriter(log_dir="logs")
 
     for epoch in range(n_epoch):
         log_output("Epoch {}/{}:".format(epoch + 1, n_epoch))
@@ -85,25 +84,18 @@ def train(
         )
 
         log_output("\nValidation metrics:")
-        val_sens, val_spec = get_metrics(val_labels, val_prob, threshold_preds)
+        get_metrics(val_labels, val_prob, threshold_preds)
 
         log_output(f"\ntrain Loss: {train_loss:.4f}" f"\nval Loss: {val_loss:.4f}")
 
         writer.add_scalars("Loss", {"train": train_loss, "val": val_loss}, epoch + 1)
 
-        if early_stopping(val_loss, val_sens, val_spec, net, threshold_preds):
+        if early_stopping(val_loss, net, threshold_preds):
             break
 
     writer.close()
 
-    torch.save(
-        early_stopping.best_model.state_dict(),
-        os.path.join(os.getcwd(), "save_best_models/best_model.pt"),
-    )
-    torch.save(
-        early_stopping.best_threshold,
-        os.path.join(os.getcwd(), "save_best_models/best_threshold.pt"),
-    )
+    early_stopping.save_best_model()
 
     return (
         early_stopping.best_model,
@@ -143,6 +135,6 @@ def test(
     log_output("\nTest metrics:")
     get_metrics(np.concatenate(test_labels), np.concatenate(test_prob), threshold_preds)
 
-    log_output(f"\ntest Loss: {test_loss:.4f}")
+    log_output(f"\nTest Loss: {test_loss:.4f}")
 
     return test_loss

@@ -1,5 +1,5 @@
 # adam.yaml
 
 _target_: torch.optim.Adam
-lr: ${model.train.learning_rate}
+lr: 0.01
 weight_decay: 1e-6

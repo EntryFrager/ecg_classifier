@@ -12,12 +12,18 @@ def setup_logger():
 
     file_handler = logging.FileHandler(log_path, mode="a", encoding="utf-8")
 
-    fmt = "%(asctime)s %(levelname)-5s: %(message)s"
-    datefmt = "%Y-%m-%d %H:%M:%S"
-    formatter = logging.Formatter(fmt, datefmt=datefmt)
+    fmt = "%(message)s"
+    formatter = logging.Formatter(fmt)
     file_handler.setFormatter(formatter)
-
     logger.addHandler(file_handler)
+
+    console_fmt = "%(message)s"
+    console_formatter = logging.Formatter(console_fmt)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(console_formatter)
+    logger.addHandler(stream_handler)
+
     logger.propagate = False
 
 

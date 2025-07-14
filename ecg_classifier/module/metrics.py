@@ -88,8 +88,6 @@ def get_metrics(
         f"\nClassification report from sklearn:\n{classification_report(y_true, y_pred)}"
     )
 
-    return macro_sens, macro_spec
-
 
 def compute_confusion_metrics(
     y_true_class: np.ndarray, y_pred_class: np.ndarray
