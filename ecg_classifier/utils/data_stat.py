@@ -3,6 +3,8 @@ import numpy as np
 import torch
 from typing import Optional, Union, Tuple, Dict, Any, Iterable, Callable
 
+from .log import log_output
+
 
 class Compose:
     def __init__(self, transforms: Iterable[Callable[[Any], Any]]) -> None:
@@ -66,7 +68,7 @@ class Normalize(torch.nn.Module):
 def get_stat(dataset: pd.DataFrame, target_labels: Dict[str, Any]) -> None:
     for key, _ in target_labels.items():
         label = dataset[key].value_counts()
-        print(f"{key} unique labels: {label}")
+        log_output(f"{key} unique labels: {label}")
 
 
 def get_mean_std(

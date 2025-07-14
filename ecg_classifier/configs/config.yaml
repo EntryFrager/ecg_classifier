@@ -1,5 +1,11 @@
 # configs/config.yaml
 
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${model.name}_${dataset.target_labels}_${now:%H-%M-%S}
+  job:
+    chdir: True
+
 defaults:
   - dataset: ds
   - model: model

@@ -9,6 +9,8 @@ from sklearn.metrics import (
 )
 from typing import Tuple, List, Callable, Optional
 
+from ecg_classifier.utils import log_output
+
 
 def get_metrics(
     y_true: np.ndarray, y_probs: np.ndarray, threshold: np.ndarray
@@ -19,13 +21,13 @@ def get_metrics(
 
     y_pred = (y_probs >= threshold).astype(np.float32)
 
-    print("Confusion matrix:")
+    log_output("Confusion matrix:")
     for i in range(0, y_true.shape[1]):
         tp_i, fp_i, tn_i, fn_i, sens, spec, prec = compute_confusion_metrics(
             y_true[:, i], y_pred[:, i]
         )
 
-        print(
+        log_output(
             pd.DataFrame([{"TP": tp_i, "FP": fp_i, "TN": tn_i, "FN": fn_i}]).to_string(
                 index=False
             )
@@ -46,8 +48,8 @@ def get_metrics(
 
     micro_sens, micro_spec, micro_prec, micro_f1 = compute_micro_average(tp, fp, tn, fn)
 
-    print("\nMicro averaging:")
-    print(
+    log_output("\nMicro averaging:")
+    log_output(
         pd.DataFrame.from_dict(
             {
                 "sensitivity": micro_sens,
@@ -65,8 +67,8 @@ def get_metrics(
         sensitivity, specificity, precision
     )
 
-    print("\nMacro averaging:")
-    print(
+    log_output("\nMacro averaging:")
+    log_output(
         pd.DataFrame.from_dict(
             {
                 "sensitivity": macro_sens,
@@ -80,9 +82,9 @@ def get_metrics(
 
     # roc auc and classification report
 
-    print(f"\nROC AUC: {np.mean(roc_auc):.4f}")
+    log_output(f"\nROC AUC: {np.mean(roc_auc):.4f}")
 
-    print(
+    log_output(
         f"\nClassification report from sklearn:\n{classification_report(y_true, y_pred)}"
     )
 

@@ -3,6 +3,8 @@ import numpy as np
 
 import copy
 
+from ..utils.log import log_output
+
 
 class EarlyStopping:
     def __init__(self, patience: int) -> None:
@@ -34,14 +36,14 @@ class EarlyStopping:
             self.best_model = copy.deepcopy(net)
             self.best_threshold = threshold
             self.counter = 0
-            print(
+            log_output(
                 f"\nBest Loss: {self.best_loss:.4f}\n"
                 f"Best threshold: {[round(float(x), 4) for x in self.best_threshold]}"
             )
         else:
             self.counter += 1
 
-        print(f"EarlyStopping: {self.counter} / {self.patience}\n")
+        log_output(f"EarlyStopping: {self.counter} / {self.patience}\n")
 
         if self.counter >= self.patience:
             self.stop = True

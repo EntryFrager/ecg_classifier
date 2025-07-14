@@ -1,3 +1,4 @@
+import os
 import torch
 import torch.nn as nn
 from torch.utils.tensorboard import SummaryWriter
@@ -7,7 +8,7 @@ from typing import Tuple, List, Any, Callable, Optional
 
 from ecg_classifier.module.callbacks import EarlyStopping
 from ecg_classifier.module.metrics import find_best_threshold, get_metrics
-from ecg_classifier.utils import device
+from ecg_classifier.utils import device, log_output
 
 
 def train(
@@ -26,13 +27,13 @@ def train(
 
     threshold_preds = []
 
-    writer = SummaryWriter(log_dir="logs")
+    writer = SummaryWriter(log_dir="logs")  # os.getcwd()
 
     for epoch in range(n_epoch):
-        print("Epoch {}/{}:".format(epoch + 1, n_epoch), flush=True)
+        log_output("Epoch {}/{}:".format(epoch + 1, n_epoch))
 
         for param_group in optimizer.param_groups:
-            print(f"Current learning rate: {param_group['lr']}")
+            log_output(f"Current learning rate: {param_group['lr']}")
 
         train_loss = val_loss = 0.0
         val_labels, val_prob = [], []
@@ -83,10 +84,10 @@ def train(
             val_labels, val_prob, compute_metric_best_thr
         )
 
-        print("\nValidation metrics:")
+        log_output("\nValidation metrics:")
         val_sens, val_spec = get_metrics(val_labels, val_prob, threshold_preds)
 
-        print(f"\ntrain Loss: {train_loss:.4f}" f"\nval Loss: {val_loss:.4f}")
+        log_output(f"\ntrain Loss: {train_loss:.4f}" f"\nval Loss: {val_loss:.4f}")
 
         writer.add_scalars("Loss", {"train": train_loss, "val": val_loss}, epoch + 1)
 
@@ -95,8 +96,14 @@ def train(
 
     writer.close()
 
-    torch.save(early_stopping.best_model.state_dict(), "save_best_models/best_model.pt")
-    torch.save(early_stopping.best_threshold, "save_best_models/best_threshold.pt")
+    torch.save(
+        early_stopping.best_model.state_dict(),
+        os.path.join(os.getcwd(), "save_best_models/best_model.pt"),
+    )
+    torch.save(
+        early_stopping.best_threshold,
+        os.path.join(os.getcwd(), "save_best_models/best_threshold.pt"),
+    )
 
     return (
         early_stopping.best_model,
@@ -133,9 +140,9 @@ def test(
 
     test_loss /= len(test_loader)
 
-    print("\nTest metrics:")
+    log_output("\nTest metrics:")
     get_metrics(np.concatenate(test_labels), np.concatenate(test_prob), threshold_preds)
 
-    print(f"\ntest Loss: {test_loss:.4f}")
+    log_output(f"\ntest Loss: {test_loss:.4f}")
 
     return test_loss
