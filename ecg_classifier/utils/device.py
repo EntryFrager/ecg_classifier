@@ -2,8 +2,6 @@ import torch
 
 from .log import log_output
 
-device = None
-
 
 def setup_device():
     global device

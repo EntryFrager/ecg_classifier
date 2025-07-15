@@ -4,7 +4,7 @@ from hydra.utils import instantiate
 from omegaconf import DictConfig
 
 from ecg_classifier.module import train, test
-from ecg_classifier.utils import setup_device, device, SeedEverything, setup_logger
+from ecg_classifier.utils import setup_device, SeedEverything, setup_logger
 
 
 @hydra.main(
@@ -13,7 +13,7 @@ from ecg_classifier.utils import setup_device, device, SeedEverything, setup_log
 def main(cfg: DictConfig):
     setup_logger()
     SeedEverything()
-    setup_device()
+    device = setup_device()
 
     ecg_dataset = instantiate(cfg.dataset)
     train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
@@ -25,9 +25,27 @@ def main(cfg: DictConfig):
 
     criterion = instantiate(cfg.criterion, pos_weight=pos_weight)
 
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=batch_size)
-    val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=batch_size)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=batch_size)
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        num_workers=4,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=batch_size,
+        num_workers=4,
+        pin_memory=True,
+        persistent_workers=True,
+    )
+    test_loader = torch.utils.data.DataLoader(
+        test_dataset,
+        batch_size=batch_size,
+        num_workers=4,
+        pin_memory=True,
+        persistent_workers=True,
+    )
 
     net = instantiate(cfg.model.resnet).to(device)
     optimizer = instantiate(cfg.optimizer, params=net.parameters())
@@ -43,8 +61,9 @@ def main(cfg: DictConfig):
         criterion,
         scheduler,
         early_stopping,
+        device=device,
     )
-    test_loss = test(net, test_loader, criterion, threshold_preds)
+    test_loss = test(net, test_loader, criterion, threshold_preds, device)
 
 
 if __name__ == "__main__":

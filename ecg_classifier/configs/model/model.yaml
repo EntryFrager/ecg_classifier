@@ -1,6 +1,6 @@
 #ResNet.yaml
 
-name: ResNet
+name: resnet
 
 resnet:
     _target_: ecg_classifier.module.ResNet
@@ -11,5 +11,5 @@ resnet:
     drop_prob_backbone: 0.1
 
 train:
-    batch_size: 64
-    n_epoch: 30
+    batch_size: 128
+    n_epoch: 50

@@ -2,9 +2,11 @@
 
 hydra:
   run:
-    dir: outputs/${now:%Y-%m-%d}/${model.name}_${dataset.target_labels}_${now:%H-%M-%S}
+    dir: outputs/${now:%Y-%m-%d}/${model.name}_afib_${now:%H-%M-%S}
   job:
     chdir: True
+  sweep:
+    dir: multirun/${now:%Y-%m-%d}/${model.name}_afib_${now:%H-%M-%S}
 
 defaults:
   - dataset: ds

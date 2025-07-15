@@ -7,7 +7,7 @@ from typing import Tuple, List, Any, Callable, Optional
 
 from ecg_classifier.module.callbacks import EarlyStopping
 from ecg_classifier.module.metrics import find_best_threshold, get_metrics
-from ecg_classifier.utils import device, log_output
+from ecg_classifier.utils import log_output
 
 
 def train(
@@ -20,6 +20,7 @@ def train(
     scheduler: Any,
     early_stopping: EarlyStopping,
     compute_metric_best_thr: Optional[Callable[[np.ndarray, np.ndarray], float]] = None,
+    device: str = "cpu",
 ) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
     loss_train_history = []
     loss_val_history = []
@@ -110,6 +111,7 @@ def test(
     test_loader: torch.utils.data.DataLoader,
     criterion: nn.Module,
     threshold_preds: np.ndarray,
+    device: str = "cpu",
 ) -> float:
     net.eval()
 
