@@ -127,6 +127,7 @@ class ResNet(nn.Module):
         self,
         block: str,
         layers: List[int],
+        in_channels: int = 12,
         num_classes: int = 1000,
         drop_prob_head: float = 0.5,
         drop_prob_backbone: float = 0.0,
@@ -140,16 +141,16 @@ class ResNet(nn.Module):
         self.drop_prob_backbone = drop_prob_backbone
 
         self.conv_1 = nn.Conv1d(
-            12, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False
+            in_channels, self.inplanes, kernel_size=3, stride=2, padding=1, bias=False
         )
         self.batch_norm_1 = nn.BatchNorm1d(self.inplanes)
         self.relu = nn.ReLU()
         self.maxpool_1 = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
-        self.layer_1 = self._make_layer(block, 64, layers[0])
-        self.layer_2 = self._make_layer(block, 128, layers[1], stride=2)
-        self.layer_3 = self._make_layer(block, 256, layers[2], stride=2)
-        self.layer_4 = self._make_layer(block, 512, layers[3], stride=2)
+        self.layer_1 = self._make_layer(64, layers[0])
+        self.layer_2 = self._make_layer(128, layers[1], stride=2)
+        self.layer_3 = self._make_layer(256, layers[2], stride=2)
+        self.layer_4 = self._make_layer(512, layers[3], stride=2)
 
         self.drop = nn.Dropout1d(p=drop_prob_head)
         self.avg_pool = nn.AdaptiveAvgPool1d(1)

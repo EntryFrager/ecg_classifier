@@ -31,6 +31,7 @@ def main(cfg: DictConfig):
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
+        drop_last=True,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
@@ -38,6 +39,7 @@ def main(cfg: DictConfig):
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
+        drop_last=True,
     )
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
@@ -45,9 +47,10 @@ def main(cfg: DictConfig):
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
+        drop_last=True,
     )
 
-    net = instantiate(cfg.model.resnet).to(device)
+    net = instantiate(cfg.model.ResNetMeta).to(device)
     optimizer = instantiate(cfg.optimizer, params=net.parameters())
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
     early_stopping = instantiate(cfg.early_stopping)

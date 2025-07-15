@@ -2,11 +2,11 @@
 
 hydra:
   run:
-    dir: outputs/${now:%Y-%m-%d}/${model.name}_afib_${now:%H-%M-%S}
+    dir: outputs_meta/${now:%Y-%m-%d}/${model.name}_sinus_${now:%H-%M-%S}
   job:
     chdir: True
   sweep:
-    dir: multirun/${now:%Y-%m-%d}/${model.name}_afib_${now:%H-%M-%S}
+    dir: multirun_meta/${now:%Y-%m-%d}/${model.name}_sinus_${now:%H-%M-%S}
 
 defaults:
   - dataset: ds

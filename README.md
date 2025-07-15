@@ -29,7 +29,7 @@ cd ./ecg_classifier
 
 2. Установка зависимостей, создание виртуальной среды и загрузка датасета **PTB-XL**:
 ```bash
-bash ./scripts/setup_venv.sh
+source ./scripts/setup_venv.sh
 bash ./scripts/download_datasets.sh
 ```
 
