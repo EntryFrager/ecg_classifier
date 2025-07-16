@@ -15,15 +15,15 @@ def main(cfg: DictConfig):
     SeedEverything()
     device = setup_device()
 
-    ecg_dataset = instantiate(cfg.dataset)
+    ecg_dataset = instantiate(cfg.data)
     train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
     pos_weight = ecg_dataset.get_pos_weight().to(device)
     ecg_dataset.close_dataset()
 
-    batch_size = cfg.model.train.batch_size
-    n_epoch = cfg.model.train.n_epoch
-    alpha = cfg.model.train.alpha
-    beta = cfg.model.train.beta
+    batch_size = cfg.train.batch_size
+    n_epoch = cfg.train.n_epoch
+    alpha = cfg.train.alpha
+    beta = cfg.train.beta
 
     criterion = instantiate(cfg.criterion, pos_weight=pos_weight)
 
@@ -69,7 +69,7 @@ def main(cfg: DictConfig):
         alpha,
         beta,
         device=device,
-        use_metadata=cfg.dataset.use_metadata,
+        use_metadata=cfg.data.use_metadata,
     )
     test_loss = test(
         net,
@@ -77,7 +77,7 @@ def main(cfg: DictConfig):
         criterion,
         threshold_preds,
         device=device,
-        use_metadata=cfg.dataset.use_metadata,
+        use_metadata=cfg.data.use_metadata,
     )
 
 
