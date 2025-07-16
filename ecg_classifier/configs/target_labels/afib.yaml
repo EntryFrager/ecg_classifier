@@ -1,0 +1,3 @@
+# afib.yaml
+
+target_label: {'afib': ['AFIB', 'AFLT']}

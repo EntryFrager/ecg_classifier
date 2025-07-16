@@ -1,8 +1,8 @@
-# ds.yaml
+# ds_with_metadata.yaml
 
 _target_: ecg_classifier.data.ECGDataset
-target_labels: {'afib': ['AFIB', 'AFLT']}
+target_labels: ${target_labels.target_label}
 path: /home/matveypavlov/Рабочий стол/ecg_classifier/dataset/physionet.org/files/ptb-xl/1.0.1/
 sampling_rate: 100
-use_metadata: False
+use_metadata: True
 use_pqrst: False

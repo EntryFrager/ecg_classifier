@@ -15,13 +15,15 @@ def main(cfg: DictConfig):
     SeedEverything()
     device = setup_device()
 
-    ecg_dataset = instantiate(cfg.dataset)
+    ecg_dataset = instantiate(cfg.data)
     train_dataset, val_dataset, test_dataset = ecg_dataset.get_dataset()
     pos_weight = ecg_dataset.get_pos_weight().to(device)
     ecg_dataset.close_dataset()
 
-    batch_size = cfg.model.train.batch_size
-    n_epoch = cfg.model.train.n_epoch
+    batch_size = cfg.train.batch_size
+    n_epoch = cfg.train.n_epoch
+    alpha = cfg.train.alpha
+    beta = cfg.train.beta
 
     criterion = instantiate(cfg.criterion, pos_weight=pos_weight)
 
@@ -31,6 +33,7 @@ def main(cfg: DictConfig):
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
+        drop_last=True,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
@@ -38,6 +41,7 @@ def main(cfg: DictConfig):
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
+        drop_last=True,
     )
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
@@ -45,9 +49,10 @@ def main(cfg: DictConfig):
         num_workers=4,
         pin_memory=True,
         persistent_workers=True,
+        drop_last=True,
     )
 
-    net = instantiate(cfg.model.resnet).to(device)
+    net = instantiate(cfg.model.ResNetMeta).to(device)
     optimizer = instantiate(cfg.optimizer, params=net.parameters())
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
     early_stopping = instantiate(cfg.early_stopping)
@@ -61,9 +66,19 @@ def main(cfg: DictConfig):
         criterion,
         scheduler,
         early_stopping,
+        alpha,
+        beta,
         device=device,
+        use_metadata=cfg.data.use_metadata,
     )
-    test_loss = test(net, test_loader, criterion, threshold_preds, device)
+    test_loss = test(
+        net,
+        test_loader,
+        criterion,
+        threshold_preds,
+        device=device,
+        use_metadata=cfg.data.use_metadata,
+    )
 
 
 if __name__ == "__main__":

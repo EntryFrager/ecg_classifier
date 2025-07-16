@@ -7,3 +7,5 @@ logs/
 *.egg-info/
 outputs/
 multirun/
+outputs_meta/
+multirun_meta/

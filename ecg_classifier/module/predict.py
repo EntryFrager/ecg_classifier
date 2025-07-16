@@ -19,8 +19,10 @@ def train(
     criterion: nn.Module,
     scheduler: Any,
     early_stopping: EarlyStopping,
-    compute_metric_best_thr: Optional[Callable[[np.ndarray, np.ndarray], float]] = None,
+    alpha: int = 0.5,
+    beta: int = 0.5,
     device: str = "cpu",
+    use_metadata: bool = False,
 ) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
     loss_train_history = []
     loss_val_history = []
@@ -40,13 +42,19 @@ def train(
 
         net.train()
 
-        for _, train_batch in enumerate(train_loader):
-            samples, labels = train_batch["ecg_signals"].to(device), train_batch[
+        for batch_idx, train_batch in enumerate(train_loader):
+            samples_ecg, labels = train_batch["ecg_signals"].to(device), train_batch[
                 "labels"
             ].to(device)
+
             optimizer.zero_grad()
 
-            preds = net(samples)
+            if use_metadata:
+                samples_meta = train_batch["metadata"].to(device)
+                preds = net(samples_ecg, samples_meta)
+            else:
+                preds = net(samples_ecg)
+
             loss = criterion(preds, labels)
 
             loss.backward()
@@ -61,10 +69,16 @@ def train(
 
         with torch.no_grad():
             for val_batch in val_loader:
-                samples, labels = val_batch["ecg_signals"].to(device), val_batch[
+                samples_ecg, labels = val_batch["ecg_signals"].to(device), val_batch[
                     "labels"
                 ].to(device)
-                preds = net(samples)
+
+                if use_metadata:
+                    samples_meta = val_batch["metadata"].to(device)
+                    preds = net(samples_ecg, samples_meta)
+                else:
+                    preds = net(samples_ecg)
+
                 val_loss += criterion(preds, labels).item()
 
                 preds = torch.sigmoid(preds)
@@ -80,9 +94,7 @@ def train(
 
         scheduler.step(val_loss)
 
-        threshold_preds = find_best_threshold(
-            val_labels, val_prob, compute_metric_best_thr
-        )
+        threshold_preds = find_best_threshold(val_labels, val_prob, alpha, beta)
 
         log_output("\nValidation metrics:")
         get_metrics(val_labels, val_prob, threshold_preds)
@@ -112,6 +124,7 @@ def test(
     criterion: nn.Module,
     threshold_preds: np.ndarray,
     device: str = "cpu",
+    use_metadata: bool = False,
 ) -> float:
     net.eval()
 
@@ -120,10 +133,15 @@ def test(
 
     with torch.no_grad():
         for batch_idx, test_batch in enumerate(test_loader):
-            samples, labels = test_batch["ecg_signals"].to(device), test_batch[
+            samples_ecg, labels = test_batch["ecg_signals"].to(device), test_batch[
                 "labels"
             ].to(device)
-            preds = net(samples)
+
+            if use_metadata:
+                samples_meta = test_batch["metadata"].to(device)
+                preds = net(samples_ecg, samples_meta)
+            else:
+                preds = net(samples_ecg)
 
             test_loss += criterion(preds, labels).item()
 

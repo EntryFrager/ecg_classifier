@@ -11,7 +11,7 @@ charset-normalizer==3.4.2
 click==8.2.1
 contourpy==1.3.2
 cycler==0.12.1
--e git+https://github.com/EntryFrager/ecg_classifier.git@d82dabe5de8778cc37db0ead6a8b57601ed2d2dc#egg=ecg_classifier
+-e git+https://github.com/EntryFrager/ecg_classifier.git@6a9cde1c096cf81524fe6d667282cba0af220ecb#egg=ecg_classifier
 filelock==3.18.0
 fonttools==4.58.5
 frozenlist==1.7.0
@@ -68,6 +68,7 @@ tensorboard==2.19.0
 tensorboard-data-server==0.7.2
 threadpoolctl==3.6.0
 torch==2.7.1
+torch-tb-profiler==0.4.3
 torchvision==0.22.1
 triton==3.3.1
 typing_extensions==4.14.1
