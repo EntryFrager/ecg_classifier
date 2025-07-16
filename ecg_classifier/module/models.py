@@ -250,22 +250,18 @@ class ResNetMeta(nn.Module):
         )
 
         self.meta_branch = nn.Sequential(
-            nn.Linear(in_channels_meta, 256),
-            nn.BatchNorm1d(256),
-            nn.ReLU(),
-            nn.Dropout(p=drop_prob_meta),
-            nn.Linear(256, 128),
-            nn.BatchNorm1d(128),
+            nn.Linear(in_channels_meta, 64),
+            nn.BatchNorm1d(64),
             nn.ReLU(),
             nn.Dropout(p=drop_prob_meta),
         )
 
         self.head = nn.Sequential(
-            nn.Linear(512 * block.expansion + 128, 512),
-            nn.BatchNorm1d(512),
+            nn.Linear(512 * block.expansion + 64, 128),
+            nn.BatchNorm1d(128),
             nn.ReLU(),
             nn.Dropout(p=drop_prob_head),
-            nn.Linear(512, num_classes),
+            nn.Linear(128, num_classes),
         )
 
         for m in self.modules():

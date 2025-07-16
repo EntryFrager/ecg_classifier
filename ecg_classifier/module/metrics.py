@@ -5,7 +5,7 @@ from sklearn.metrics import (
     roc_auc_score,
     confusion_matrix,
     classification_report,
-    precision_recall_curve,
+    roc_curve,
 )
 from typing import Tuple, List, Callable, Optional
 
@@ -131,22 +131,29 @@ def compute_macro_average(
     return macro_sens, macro_spec, macro_prec, macro_f1
 
 
-def default_compute_metric_best_thr(y_true_class, y_prob_class) -> float:
-    prec, sens, thresholds = precision_recall_curve(y_true_class, y_prob_class)
-    f1 = 2 * sens[:-1] * prec[:-1] / (sens[:-1] + prec[:-1])
+def compute_metric_best_thr(
+    y_true_class: np.ndarray,
+    y_prob_class: np.ndarray,
+    alpha: int = 0.5,
+    beta: int = 0.5,
+) -> float:
+    assert 0 <= alpha <= 1, "Alpha must be between 0 and 1"
+    assert 0 <= beta <= 1, "Beta must be between 0 and 1"
+    assert 0 <= alpha + beta <= 1, "Alpha and beta must sum to 1"
 
-    best_idx = np.nanargmax(f1)
+    fpr, sens, thresholds = roc_curve(y_true_class, y_prob_class)
+    weighted_sum = alpha * sens + beta * (1 - fpr)
+
+    best_idx = np.argmax(weighted_sum)
     return thresholds[best_idx]
 
 
 def find_best_threshold(
     y_true: np.ndarray,
     y_prob: np.ndarray,
-    compute_metric_best_thr: Optional[Callable[[np.ndarray, np.ndarray], float]],
+    alpha: int = 0.5,
+    beta: int = 0.5,
 ) -> np.ndarray:
-    if compute_metric_best_thr is None:
-        compute_metric_best_thr = default_compute_metric_best_thr
-
     best_threshold = []
 
     for i in range(0, y_true.shape[1]):

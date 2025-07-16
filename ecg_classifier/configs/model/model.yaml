@@ -16,3 +16,5 @@ ResNetMeta:
 train:
     batch_size: 64
     n_epoch: 30
+    alpha: 0.7
+    beta: 0.3

@@ -22,6 +22,8 @@ def main(cfg: DictConfig):
 
     batch_size = cfg.model.train.batch_size
     n_epoch = cfg.model.train.n_epoch
+    alpha = cfg.model.train.alpha
+    beta = cfg.model.train.beta
 
     criterion = instantiate(cfg.criterion, pos_weight=pos_weight)
 
@@ -64,6 +66,8 @@ def main(cfg: DictConfig):
         criterion,
         scheduler,
         early_stopping,
+        alpha,
+        beta,
         device=device,
         use_metadata=cfg.dataset.use_metadata,
     )
