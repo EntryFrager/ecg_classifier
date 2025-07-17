@@ -147,10 +147,10 @@ class ResNet(nn.Module):
         self.relu = nn.ReLU()
         self.maxpool_1 = nn.MaxPool1d(kernel_size=3, stride=2, padding=1)
 
-        self.layer_1 = self._make_layer(64, layers[0])
-        self.layer_2 = self._make_layer(128, layers[1], stride=2)
-        self.layer_3 = self._make_layer(256, layers[2], stride=2)
-        self.layer_4 = self._make_layer(512, layers[3], stride=2)
+        self.layer_1 = self._make_layer(block, 64, layers[0])
+        self.layer_2 = self._make_layer(block, 128, layers[1], stride=2)
+        self.layer_3 = self._make_layer(block, 256, layers[2], stride=2)
+        self.layer_4 = self._make_layer(block, 512, layers[3], stride=2)
 
         self.drop = nn.Dropout1d(p=drop_prob_head)
         self.avg_pool = nn.AdaptiveAvgPool1d(1)

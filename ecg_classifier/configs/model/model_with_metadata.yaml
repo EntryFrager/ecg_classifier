@@ -2,7 +2,7 @@
 
 name: ResNetMeta
 
-ResNetMeta:
+model:
     _target_: ecg_classifier.module.ResNetMeta
     block: ecg_classifier.module.BasicBlock
     layers: [2, 2, 2, 2]

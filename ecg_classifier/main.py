@@ -52,7 +52,7 @@ def main(cfg: DictConfig):
         drop_last=True,
     )
 
-    net = instantiate(cfg.model.ResNetMeta).to(device)
+    net = instantiate(cfg.model.model).to(device)
     optimizer = instantiate(cfg.optimizer, params=net.parameters())
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
     early_stopping = instantiate(cfg.early_stopping)

@@ -140,7 +140,7 @@ class ECGDataset(Dataset):
         elif self.sampling_rate == 500:
             files = [filename for filename in self.ptbxl_dataset["filename_hr"]]
 
-        return np.array([wfdb.rdsamp(self.path + file)[0] for file in files])
+        return files
 
     def _process_metadata(self) -> np.ndarray:
         metadata = self.ptbxl_dataset[["age", "sex", "height", "weight"]].copy()
@@ -160,7 +160,7 @@ class ECGDataset(Dataset):
 
     def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
         sample = {
-            "ecg_signals": self.ecg_signals[index],
+            "ecg_signals": wfdb.rdsamp(self.path + self.ecg_signals[index])[0],
             "labels": self.labels[index],
         }
 
