@@ -1,7 +1,7 @@
 # ds_with_metadata.yaml
 
 _target_: ecg_classifier.data.ECGDataset
-target_labels: ${target_labels.target_label}
+key_target_label: sinus
 path: /home/matveypavlov/Рабочий стол/ecg_classifier/dataset/physionet.org/files/ptb-xl/1.0.1/
 sampling_rate: 100
 use_metadata: True

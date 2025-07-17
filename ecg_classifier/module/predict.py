@@ -20,7 +20,6 @@ def train(
     scheduler: Any,
     early_stopping: EarlyStopping,
     alpha: int = 0.5,
-    beta: int = 0.5,
     device: str = "cpu",
     use_metadata: bool = False,
 ) -> Tuple[nn.Module, np.ndarray, List[float], List[float]]:
@@ -94,7 +93,7 @@ def train(
 
         scheduler.step(val_loss)
 
-        threshold_preds = find_best_threshold(val_labels, val_prob, alpha, beta)
+        threshold_preds = find_best_threshold(val_labels, val_prob, alpha)
 
         log_output("\nValidation metrics:")
         get_metrics(val_labels, val_prob, threshold_preds)

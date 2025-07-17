@@ -132,31 +132,25 @@ def compute_macro_average(
 
 
 def compute_metric_best_thr(
-    y_true_class: np.ndarray,
-    y_prob_class: np.ndarray,
-    alpha: int = 0.5,
-    beta: int = 0.5,
+    y_true_class: np.ndarray, y_prob_class: np.ndarray, alpha: int = 0.5
 ) -> float:
     assert 0 <= alpha <= 1, "Alpha must be between 0 and 1"
-    assert 0 <= beta <= 1, "Beta must be between 0 and 1"
-    assert 0 <= alpha + beta <= 1, "Alpha and beta must sum to 1"
 
     fpr, sens, thresholds = roc_curve(y_true_class, y_prob_class)
-    weighted_sum = alpha * sens + beta * (1 - fpr)
+    weighted_sum = alpha * sens + (1 - alpha) * (1 - fpr)
 
     best_idx = np.argmax(weighted_sum)
     return thresholds[best_idx]
 
 
 def find_best_threshold(
-    y_true: np.ndarray,
-    y_prob: np.ndarray,
-    alpha: int = 0.5,
-    beta: int = 0.5,
+    y_true: np.ndarray, y_prob: np.ndarray, alpha: int = 0.5
 ) -> np.ndarray:
     best_threshold = []
 
     for i in range(0, y_true.shape[1]):
-        best_threshold.append(compute_metric_best_thr(y_true[:, i], y_prob[:, i]))
+        best_threshold.append(
+            compute_metric_best_thr(y_true[:, i], y_prob[:, i], alpha)
+        )
 
     return best_threshold

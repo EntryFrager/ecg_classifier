@@ -2,15 +2,14 @@
 
 hydra:
   run:
-    dir: outputs/single_${data.use_metadata}/${model.name}_${data.target_labels}_${now:%Y-%m-%d_%H-%M-%S}
+    dir: outputs/single_${data.use_metadata}/${model.name}_${data.key_target_label}_${now:%Y-%m-%d_%H-%M-%S}
   job:
     chdir: True
   sweep:
-    dir: outputs/multirun_${data.use_metadata}/${model.name}_${data.target_labels}_${now:%Y-%m-%d_%H-%M-%S}
+    dir: outputs/multirun_${data.use_metadata}/${model.name}_${data.key_target_label}_${now:%Y-%m-%d_%H-%M-%S}
 
 defaults:
   - data: ds
-  - target_labels: afib
   - model: model
   - train: train
   - optimizer: adam

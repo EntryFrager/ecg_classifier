@@ -10,6 +10,14 @@ from ecg_classifier.utils.data_stat import Compose, ToTensor, Normalize
 
 
 class ECGDataset(Dataset):
+    base_target_labels = {
+        "sinus": ["NORM", "SR"],
+        "arrit": ["SARRH", "SVARR"],
+        "tach": ["STACH", "SVATC", "PSVT"],
+        "brad": ["SBRAD"],
+        "afib": ["AFIB", "AFLT"],
+    }
+
     ecg_stat = {
         "mean": torch.tensor(
             [
@@ -65,13 +73,13 @@ class ECGDataset(Dataset):
 
     def __init__(
         self,
-        target_labels: Dict[str, list[str]],
+        key_target_label: str,
         path: str = "dataset/physionet.org/files/ptb-xl/1.0.1/",
         sampling_rate: int = 100,
         use_metadata: bool = False,
         use_pqrst: bool = False,
     ) -> None:
-        if target_labels is None:
+        if key_target_label is None:
             raise ValueError("Target labels should be initialized.")
 
         self.path = path
@@ -86,7 +94,9 @@ class ECGDataset(Dataset):
             path + "ptbxl_database.csv", index_col="ecg_id"
         )
 
-        self.target_labels = target_labels
+        self.target_labels = {
+            key_target_label: self.base_target_labels[key_target_label]
+        }
 
         self.labels = self._set_target_labels()
         self.ecg_signals = self._process_ecg_signals()

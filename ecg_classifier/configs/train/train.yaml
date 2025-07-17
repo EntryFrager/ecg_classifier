@@ -3,4 +3,3 @@
 batch_size: 64
 n_epoch: 30
 alpha: 0.8
-beta: 0.2
