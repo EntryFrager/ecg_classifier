@@ -3,7 +3,7 @@ import hydra
 from hydra.utils import instantiate
 from omegaconf import DictConfig
 
-from ecg_classifier.module import train, test
+from ecg_classifier.module import train, test, trainMTL, testMTL
 from ecg_classifier.utils import setup_device, SeedEverything, setup_logger
 
 
@@ -55,7 +55,7 @@ def main(cfg: DictConfig):
     scheduler = instantiate(cfg.scheduler, optimizer=optimizer)
     early_stopping = instantiate(cfg.early_stopping)
 
-    net, threshold_preds, train_history, val_history = train(
+    net, threshold_ecg, threshold_meta, _, _ = trainMTL(
         net,
         train_loader,
         val_loader,
@@ -66,15 +66,14 @@ def main(cfg: DictConfig):
         early_stopping,
         alpha=cfg.train.alpha,
         device=device,
-        use_metadata=cfg.data.use_metadata,
     )
-    test_loss = test(
+    _ = testMTL(
         net,
         test_loader,
         criterion,
-        threshold_preds,
+        threshold_ecg=[0.5],
+        threshold_meta=[0.5],
         device=device,
-        use_metadata=cfg.data.use_metadata,
     )
 
 

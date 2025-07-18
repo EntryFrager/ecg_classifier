@@ -106,8 +106,8 @@ class ECGDataset(Dataset):
         norm = Normalize(
             self.ecg_stat["mean"],
             self.ecg_stat["std"],
-            self.metadata_stat["mean"] if use_metadata else None,
-            self.metadata_stat["std"] if use_metadata else None,
+            self.metadata_stat["mean"] if not use_metadata else None,
+            self.metadata_stat["std"] if not use_metadata else None,
             self.pqrst_stat["mean"] if use_pqrst else None,
             self.pqrst_stat["std"] if use_pqrst else None,
         )
@@ -150,17 +150,19 @@ class ECGDataset(Dataset):
         elif self.sampling_rate == 500:
             files = [filename for filename in self.ptbxl_dataset["filename_hr"]]
 
-        return files
+        return np.array([wfdb.rdsamp(self.path + file)[0] for file in files])
 
     def _process_metadata(self) -> np.ndarray:
-        metadata = self.ptbxl_dataset[["age", "sex", "height", "weight"]].copy()
+        # metadata = self.ptbxl_dataset[["age", "sex", "height", "weight"]].copy()
 
-        with pd.option_context("future.no_silent_downcasting", True):
-            metadata["age"] = metadata["age"].fillna(metadata["age"].median())
-            metadata["height"] = metadata["height"].fillna(metadata["height"].median())
-            metadata["weight"] = metadata["weight"].fillna(metadata["weight"].median())
+        # with pd.option_context("future.no_silent_downcasting", True):
+        #     metadata["age"] = metadata["age"].fillna(metadata["age"].median())
+        #     metadata["height"] = metadata["height"].fillna(metadata["height"].median())
+        #     metadata["weight"] = metadata["weight"].fillna(metadata["weight"].median())
 
-        metadata["BMI"] = metadata["weight"] / ((metadata["height"] / 100) ** 2)
+        # metadata["BMI"] = metadata["weight"] / ((metadata["height"] / 100) ** 2)
+
+        metadata = self.ptbxl_dataset["sex"].copy()
 
         return metadata.values
 
@@ -170,12 +172,12 @@ class ECGDataset(Dataset):
 
     def __getitem__(self, index: int) -> Dict[str, torch.Tensor]:
         sample = {
-            "ecg_signals": wfdb.rdsamp(self.path + self.ecg_signals[index])[0],
+            "ecg_signals": self.ecg_signals[index],
             "labels": self.labels[index],
         }
 
         if self.metadata is not None:
-            sample["metadata"] = self.metadata[index]
+            sample["metadata"] = np.array([self.metadata[index]], dtype=np.float32)
 
         if self.pqrst_features is not None:
             sample["pqrst_features"] = self.pqrst_features[index]

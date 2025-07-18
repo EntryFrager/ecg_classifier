@@ -9,8 +9,8 @@ hydra:
     dir: outputs/multirun_${data.use_metadata}/${model.name}_${data.key_target_label}_${now:%Y-%m-%d_%H-%M-%S}
 
 defaults:
-  - data: ds
-  - model: model
+  - data: ds_with_metadata
+  - model: model_mtl
   - train: train
   - optimizer: adam
   - criterion: cr

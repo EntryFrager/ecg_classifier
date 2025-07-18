@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 import hydra
-from typing import Optional, List, Type
+from typing import Optional, List, Type, Tuple
 
 
 class BasicBlock(nn.Module):
