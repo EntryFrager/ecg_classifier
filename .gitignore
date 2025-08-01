@@ -1,6 +1,7 @@
 dataset/
 ecg_venv/
 __pycache__/
+.vscode/
 ParsData/
 save_best_models/
 logs/
