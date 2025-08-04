@@ -1,0 +1,18 @@
+# configs/config.yaml
+
+hydra:
+  run:
+    dir: outputs/single_${data.use_metadata}/${model.name}_${data.key_target_label}_${now:%Y-%m-%d_%H-%M-%S}
+  job:
+    chdir: True
+  sweep:
+    dir: outputs/multirun_${data.use_metadata}/${model.name}_${data.key_target_label}_${now:%Y-%m-%d_%H-%M-%S}
+
+defaults:
+  - data: ds_with_metadata
+  - model: model_mtl
+  - train: train
+  - optimizer: adam
+  - criterion: cr
+  - scheduler: scheduler
+  - early_stopping: es

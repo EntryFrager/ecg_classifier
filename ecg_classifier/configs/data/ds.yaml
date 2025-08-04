@@ -1,0 +1,8 @@
+# ds.yaml
+
+_target_: ecg_classifier.data.ECGDataset
+key_target_label: sinus
+path: /home/matveypavlov/Рабочий стол/ecg_classifier/dataset/physionet.org/files/ptb-xl/1.0.1/
+sampling_rate: 100
+use_metadata: False
+use_pqrst: False

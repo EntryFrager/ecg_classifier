@@ -1,0 +1,12 @@
+# model.yaml
+
+name: ResNet
+
+model:
+    _target_: ecg_classifier.module.ResNet
+    block: ecg_classifier.module.BasicBlock
+    layers: [2, 2, 2, 2]
+    in_channels: 12
+    num_classes: 1
+    drop_prob_head: 0.25
+    drop_prob_backbone: 0.1
